@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0F172A" />
+  <!-- اسم التطبيق للـ PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>مسابقة الفرق</title>
+
+  <!-- =============================================
+       PWA MANIFEST مضمّن داخل الصفحة
+  ============================================= -->
+  <script>
+    // نسجل الـ manifest مباشرة بدون ملف خارجي
+    const manifestData = {
+      name: "مسابقة الفرق",
+      short_name: "مسابقة",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#0F172A",
+      theme_color: "#0F172A",
+      icons: [
+        { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>", sizes: "192x192", type: "image/svg+xml" }
+      ]
+    };
+    const blob = new Blob([JSON.stringify(manifestData)], { type: "application/json" });
+    const manifestURL = URL.createObjectURL(blob);
+    document.write(`<link rel="manifest" href="${manifestURL}">`);
+  </script>
+
+  <!-- خط Cairo من Google Fonts - الخط الرسمي للعبة -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================
+       إعادة تهيئة أساسية وإعدادات عامة
+    ============================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* ألوان الخلفية */
+      --bg-main: #0F172A;
+      --bg-card: #1E293B;
+      --bg-border: #334155;
+
+      /* ألوان الفريق الأول - برتقالي */
+      --team1: #F97316;
+      --team1-hover: #FB923C;
+      --team1-glow: #FDBA74;
+
+      /* ألوان الفريق الثاني - أخضر */
+      --team2: #22C55E;
+      --team2-hover: #4ADE80;
+      --team2-glow: #86EFAC;
+
+      /* ألوان النصوص */
+      --text-primary: #FFFFFF;
+      --text-secondary: #CBD5E1;
+
+      /* ألوان الأزرار */
+      --btn-neutral: #334155;
+      --btn-done: #475569;
+
+      /* ألوان المساعدات */
+      --help-options: #3B82F6;
+      --help-double: #8B5CF6;
+      --help-steal: #EF4444;
+
+      /* خصائص الأزرار */
+      --radius: 18px;
+      --transition: 0.15s ease;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden; /* نمنع السكرول لأن كل شاشة تملأ الصفحة */
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg-main);
+      color: var(--text-primary);
+    }
+
+    /* ============================================
+       نظام الشاشات - كل شاشة تأخذ 100% من المساحة
+    ============================================ */
+    .screen {
+      display: none; /* مخفية افتراضياً */
+      position: fixed;
+      inset: 0;
+      overflow-y: auto;
+      padding: 20px;
+      animation: fadeSlideUp 0.25s ease forwards;
+    }
+
+    /* الشاشة النشطة تظهر */
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* حركة الانتقال بين الشاشات */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================
+       أنماط الأزرار العامة
+    ============================================ */
+    .btn {
+      font-family: 'Cairo', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      border-radius: var(--radius);
+      padding: 14px 28px;
+      transition: all var(--transition);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    /* تأثير الضغط على الزر */
+    .btn:active {
+      transform: scale(0.98);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* أنواع الأزرار */
+    .btn-primary   { background: var(--team1); color: #fff; }
+    .btn-secondary { background: var(--btn-neutral); color: var(--text-primary); }
+    .btn-team1     { background: var(--team1); color: #fff; }
+    .btn-team2     { background: var(--team2); color: #fff; }
+    .btn-neutral   { background: var(--btn-neutral); color: var(--text-primary); }
+    .btn-done      { background: #10B981; color: #fff; font-size: 1.1rem; }
+
+    /* ============================================
+       ══════════ شاشة الإعداد (1) ══════════
+    ============================================ */
+    #screen-setup {
+      align-items: center;
+      gap: 24px;
+    }
+
+    .setup-title {
+      font-size: 2.2rem;
+      font-weight: 900;
+      text-align: center;
+      background: linear-gradient(135deg, var(--team1), var(--team2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-top: 10px;
+    }
+
+    .setup-subtitle {
+      color: var(--text-secondary);
+      text-align: center;
+      font-size: 0.95rem;
+    }
+
+    /* شبكة بطاقات الفئات */
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    /* بطاقة فئة واحدة */
+    .cat-card {
+      background: var(--bg-card);
+      border: 2px solid var(--bg-border);
+      border-radius: var(--radius);
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+
+    .cat-card:hover {
+      border-color: var(--team1);
+      transform: translateY(-2px);
+    }
+
+    /* البطاقة المختارة تتغير لبرتقالي */
+    .cat-card.selected {
+      background: rgba(249, 115, 22, 0.15);
+      border-color: var(--team1);
+      box-shadow: 0 0 16px rgba(249, 115, 22, 0.3);
+    }
+
+    /* البطاقة المعطلة (بعد اختيار 6) */
+    .cat-card.disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .cat-emoji { font-size: 2rem; }
+    .cat-name  { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+
+    /* عداد الاختيارات */
+    .selection-counter {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .selection-counter span {
+      color: var(--team1);
+      font-weight: 700;
+    }
+
+    /* زر البدء في شاشة الإعداد */
+    .btn-start-setup {
+      padding: 16px 60px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--team1), #EA580C);
+      color: #fff;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 20px rgba(249,115,22,0.4); }
+      50%       { box-shadow: 0 4px 40px rgba(249,115,22,0.8); }
+    }
+
+    /* ============================================
+       النافذة المنبثقة (Popup)
+    ============================================ */
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* تظهر عند إضافة كلاس active */
+    .popup-overlay.active {
+      display: flex;
+    }
+
+    .popup-box {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 24px;
+      padding: 32px;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      animation: fadeSlideUp 0.25s ease;
+    }
+
+    .popup-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* حقول إدخال أسماء الفرق */
+    .team-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .input-group label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .input-group input {
+      background: var(--bg-main);
+      border: 2px solid var(--bg-border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-family: 'Cairo', sans-serif;
+      font-size: 1rem;
+      transition: border-color var(--transition);
+      text-align: right;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: var(--team1);
+    }
+
+    /* قسم شرح المساعدات في الـ popup */
+    .helps-info {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .helps-info h4 {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .help-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+
+    .help-icon {
+      font-size: 1.2rem;
+      width: 28px;
+      text-align: center;
+    }
+
+    /* ============================================
+       ══════════ شاشة اللوحة الرئيسية (2) ══════════
+    ============================================ */
+    #screen-board {
+      gap: 16px;
+      padding: 12px;
+    }
+
+    /* شريط النتائج العلوي */
+    .scoreboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .team-score-card {
+      background: var(--bg-card);
+      border: 2px solid var(--bg-border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    /* تمييز الفريق الذي دوره */
+    .team-score-card.active-turn {
+      box-shadow: 0 0 20px rgba(255,255,255,0.15);
+    }
+
+    .team-score-card.team1-active { border-color: var(--team1); box-shadow: 0 0 20px rgba(249,115,22,0.4); }
+    .team-score-card.team2-active { border-color: var(--team2); box-shadow: 0 0 20px rgba(34,197,94,0.4); }
+
+    .team-name {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .team1-name { color: var(--team1); }
+    .team2-name { color: var(--team2); }
+
+    .team-points {
+      font-size: 1.8rem;
+      font-weight: 900;
+    }
+
+    /* أيقونات المساعدات في البطاقة */
+    .team-powerups {
+      display: flex;
+      gap: 8px;
+    }
+
+    .powerup-icon {
+      font-size: 1.1rem;
+      opacity: 1;
+      transition: opacity 0.3s;
+      position: relative;
+    }
+
+    /* عندما تُستخدم المساعدة */
+    .powerup-icon.used {
+      opacity: 0.3;
+    }
+
+    .powerup-icon.used::after {
+      content: '✓';
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      font-size: 0.5rem;
+      color: #10B981;
+    }
+
+    /* مؤشر الدور */
+    .turn-indicator {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      padding: 6px 0;
+    }
+
+    .turn-indicator span {
+      font-weight: 700;
+    }
+
+    /* شبكة الأسئلة */
+    .questions-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      flex: 1;
+    }
+
+    /* عمود تصنيف واحد */
+    .category-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* عنوان التصنيف */
+    .category-header {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-border);
+      border-radius: 12px;
+      padding: 10px 6px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cat-header-emoji { font-size: 1.4rem; }
+
+    /* مجموعة الأسئلة بنفس القيمة - زرين بجانب بعض */
+    .question-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    /* زر قيمة السؤال */
+    .q-btn {
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 10px 4px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+      background: #F8FAFC;
+      color: #0F172A;
+      border: 1px solid #CBD5E1;
+    }
+
+    .q-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(249,115,22,0.4);
+      border-color: var(--team1);
+    }
+
+    .q-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    /* السؤال المنتهي */
+    .q-btn.played {
+      background: #475569;
+      color: #CBD5E1;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* أزرار التحكم السفلية */
+    .board-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      padding: 8px 0;
+    }
+
+    /* ============================================
+       ══════════ شاشة السؤال (3) ══════════
+    ============================================ */
+    #screen-question {
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      gap: 16px;
+    }
+
+    /* معلومات السؤال العلوية */
+    .question-meta {
+      text-align: center;
+      width: 100%;
+    }
+
+    .question-category-label {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .question-points-label {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--team1);
+    }
+
+    /* المؤقت الدائري */
+    .timer-container {
+      display: flex;
+      justify-content: center;
+    }
+
+    .timer-circle {
+      position: relative;
+      width: 90px;
+      height: 90px;
+    }
+
+    /* الـ SVG الدائري */
+    .timer-circle svg {
+      position: absolute;
+      inset: 0;
+      transform: rotate(-90deg); /* نبدأ من الأعلى */
+    }
+
+    /* الحلقة الخلفية */
+    .timer-bg-ring {
+      fill: none;
+      stroke: var(--bg-border);
+      stroke-width: 6;
+    }
+
+    /* الحلقة المتحركة */
+    .timer-progress-ring {
+      fill: none;
+      stroke: var(--team1); /* يتغير حسب الفريق */
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
+    }
+
+    /* الرقم داخل الدائرة */
+    .timer-number {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+    }
+
+    /* وميض المؤقت في آخر 10 ثوانٍ */
+    @keyframes timerFlash {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    .timer-circle.flashing .timer-progress-ring {
+      animation: timerFlash 0.5s ease infinite;
+    }
+
+    /* منطقة نص السؤال */
+    .question-text-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .question-text {
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* الخيارات الأربعة (تظهر فقط عند تفعيل مساعدة الخيارات) */
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 700px;
+    }
+
+    .option-btn {
+      background: var(--bg-card);
+      border: 2px solid var(--bg-border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: default; /* الخيارات للعرض فقط، مدير الجلسة يقرر */
+      text-align: center;
+    }
+
+    /* شريط المساعدات وزر تم */
+    .question-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .powerup-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: all var(--transition);
+    }
+
+    .powerup-btn .pu-emoji { font-size: 1.4rem; }
+
+    .powerup-btn:active { transform: scale(0.95); }
+
+    .powerup-btn.used-pu {
+      opacity: 0.3;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ألوان المساعدات */
+    .pu-options { background: rgba(59,130,246,0.2);  color: #93C5FD; border: 2px solid #3B82F6; }
+    .pu-double  { background: rgba(139,92,246,0.2); color: #C4B5FD; border: 2px solid #8B5CF6; }
+    .pu-steal   { background: rgba(239,68,68,0.2);  color: #FCA5A5; border: 2px solid #EF4444; }
+
+    /* زر تم الكبير */
+    .btn-done-main {
+      padding: 16px 40px;
+      font-size: 1.2rem;
+      background: #10B981;
+      color: #fff;
+      border-radius: var(--radius);
+      border: none;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--transition);
+      box-shadow: 0 4px 20px rgba(16,185,129,0.4);
+    }
+
+    .btn-done-main:active { transform: scale(0.97); }
+
+    /* نافذة نتيجة السؤال */
+    .result-popup .popup-box {
+      max-width: 420px;
+    }
+
+    .result-answer {
+      background: rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .result-answer-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .result-answer-text {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #10B981;
+    }
+
+    .result-explanation {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .result-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ============================================
+       ══════════ شاشة الفائز (4) ══════════
+    ============================================ */
+    #screen-winner {
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      text-align: center;
+    }
+
+    .winner-bg-team1 { background: linear-gradient(135deg, #7C2D12, #EA580C, #F97316); }
+    .winner-bg-team2 { background: linear-gradient(135deg, #14532D, #16A34A, #22C55E); }
+    .winner-bg-tie   { background: linear-gradient(135deg, #1E3A5F, #1D4ED8, #3B82F6); }
+
+    .winner-trophy { font-size: 5rem; animation: bounce 1s ease infinite; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-15px); }
+    }
+
+    .winner-label {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .winner-name {
+      font-size: 3rem;
+      font-weight: 900;
+      animation: scaleIn 0.5s ease;
+    }
+
+    @keyframes scaleIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .winner-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .loser-section {
+      opacity: 0.6;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .loser-name  { font-size: 1.1rem; font-weight: 700; }
+    .loser-score { font-size: 0.95rem; }
+
+    /* قصاصات ورق احتفالية */
+    .confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      top: -20px;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      animation: confettiFall linear forwards;
+    }
+
+    @keyframes confettiFall {
+      to {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* ============================================
+       QR Code لفئة "ولا كلمة"
+    ============================================ */
+    .barcode-display {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      color: #000;
+    }
+
+    .barcode-display.visible { display: flex; }
+
+    .barcode-display p {
+      font-size: 0.85rem;
+      color: #555;
+      text-align: center;
+    }
+
+    #qrCanvas { border-radius: 8px; }
+
+    /* ============================================
+       تصميم متجاوب للشاشات الصغيرة
+    ============================================ */
+    @media (max-width: 768px) {
+      .categories-grid    { grid-template-columns: repeat(3, 1fr); }
+      .questions-grid     { grid-template-columns: repeat(3, 1fr); }
+      .question-text      { font-size: 1.4rem; }
+      .setup-title        { font-size: 1.6rem; }
+    }
+
+    @media (max-width: 480px) {
+      .categories-grid    { grid-template-columns: repeat(2, 1fr); }
+      .questions-grid     { grid-template-columns: repeat(2, 1fr); }
+      .q-btn              { font-size: 0.75rem; padding: 8px 2px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =============================================
+       الشاشة الأولى: اختيار الفئات
+  ============================================= -->
+  <div id="screen-setup" class="screen active">
+    <h1 class="setup-title">🏆 مسابقة الفرق</h1>
+    <p class="setup-subtitle">اختر 6 فئات لتبدأ الجلسة</p>
+
+    <p class="selection-counter">تم اختيار <span id="selected-count">0</span> من 6</p>
+
+    <!-- شبكة الـ 12 فئة -->
+    <div class="categories-grid" id="categories-grid">
+      <!-- تُبنى تلقائياً من قائمة الفئات في الـ JavaScript -->
+    </div>
+
+    <!-- زر البدء يظهر فقط بعد اختيار 6 فئات -->
+    <button class="btn btn-start-setup" id="btn-open-popup" style="display:none">
+      ابدأ ▶
+    </button>
+  </div>
+
+  <!-- =============================================
+       النافذة المنبثقة: أسماء الفرق وشرح المساعدات
+  ============================================= -->
+  <div class="popup-overlay" id="popup-names">
+    <div class="popup-box">
+      <h2 class="popup-title">⚔️ أسماء الفرق</h2>
+
+      <div class="team-inputs">
+        <div class="input-group">
+          <!-- حقل اسم الفريق الأول -->
+          <label style="color: var(--team1)">🟠 الفريق الأول</label>
+          <input type="text" id="input-team1" placeholder="الفريق الأول" maxlength="20" />
+        </div>
+        <div class="input-group">
+          <!-- حقل اسم الفريق الثاني -->
+          <label style="color: var(--team2)">🟢 الفريق الثاني</label>
+          <input type="text" id="input-team2" placeholder="الفريق الثاني" maxlength="20" />
+        </div>
+      </div>
+
+      <!-- شرح المساعدات الثلاث -->
+      <div class="helps-info">
+        <h4>🛠 وسائل المساعدة</h4>
+        <div class="help-row">
+          <span class="help-icon">📝</span>
+          <span><b>خيارات:</b> تحويل السؤال إلى 4 خيارات</span>
+        </div>
+        <div class="help-row">
+          <span class="help-icon">🚀</span>
+          <span><b>دبل:</b> مضاعفة نقاط السؤال عند الإجابة الصحيحة</span>
+        </div>
+        <div class="help-row">
+          <span class="help-icon">🥷</span>
+          <span><b>سرقة:</b> خصم نقاط الخصم وإضافتها لرصيدك</span>
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px">
+          ⚠️ الإجابة الخاطئة تُضيع المساعدة المستخدمة
+        </p>
+      </div>
+
+      <!-- زر الانطلاق الرئيسي -->
+      <button class="btn btn-team1" id="btn-play-now" style="font-size:1.1rem; padding:16px">
+        العب الآن 🎮
+      </button>
+    </div>
+  </div>
+
+  <!-- =============================================
+       الشاشة الثانية: لوحة اللعب الرئيسية
+  ============================================= -->
+  <div id="screen-board" class="screen">
+
+    <!-- شريط النتائج العلوي -->
+    <div class="scoreboard">
+      <!-- بطاقة الفريق الأول -->
+      <div class="team-score-card" id="card-team1">
+        <div class="team-name team1-name" id="display-team1-name">الفريق الأول</div>
+        <div class="team-points" id="display-team1-score" style="color: var(--team1)">0</div>
+        <!-- أيقونات مساعدات الفريق الأول -->
+        <div class="team-powerups">
+          <span class="powerup-icon" id="t1-pu-options" title="خيارات">📝</span>
+          <span class="powerup-icon" id="t1-pu-double"  title="دبل">🚀</span>
+          <span class="powerup-icon" id="t1-pu-steal"   title="سرقة">🥷</span>
+        </div>
+      </div>
+
+      <!-- بطاقة الفريق الثاني -->
+      <div class="team-score-card" id="card-team2">
+        <div class="team-name team2-name" id="display-team2-name">الفريق الثاني</div>
+        <div class="team-points" id="display-team2-score" style="color: var(--team2)">0</div>
+        <!-- أيقونات مساعدات الفريق الثاني -->
+        <div class="team-powerups">
+          <span class="powerup-icon" id="t2-pu-options" title="خيارات">📝</span>
+          <span class="powerup-icon" id="t2-pu-double"  title="دبل">🚀</span>
+          <span class="powerup-icon" id="t2-pu-steal"   title="سرقة">🥷</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- مؤشر الدور الحالي -->
+    <div class="turn-indicator">
+      دور: <span id="turn-label">-</span>
+    </div>
+
+    <!-- شبكة الأسئلة - تُبنى من الـ JS -->
+    <div class="questions-grid" id="questions-grid"></div>
+
+    <!-- أزرار التحكم السفلية -->
+    <div class="board-controls">
+      <button class="btn btn-secondary" id="btn-back-to-setup">🏠 العودة</button>
+      <button class="btn" style="background:#DC2626; color:#fff" id="btn-end-game">⛔ إنهاء اللعبة</button>
+    </div>
+  </div>
+
+  <!-- =============================================
+       الشاشة الثالثة: عرض السؤال
+  ============================================= -->
+  <div id="screen-question" class="screen">
+
+    <!-- معلومات السؤال في الأعلى -->
+    <div class="question-meta">
+      <div class="question-category-label" id="q-category-label"></div>
+      <div class="question-points-label" id="q-points-label"></div>
+    </div>
+
+    <!-- المؤقت الدائري -->
+    <div class="timer-container">
+      <div class="timer-circle" id="timer-circle">
+        <svg viewBox="0 0 90 90">
+          <!-- الحلقة الخلفية الثابتة -->
+          <circle class="timer-bg-ring" cx="45" cy="45" r="38" />
+          <!-- الحلقة المتحركة التي تتقلص مع الوقت -->
+          <circle class="timer-progress-ring" id="timer-ring" cx="45" cy="45" r="38"
+            stroke-dasharray="238.76"
+            stroke-dashoffset="0" />
+        </svg>
+        <!-- الرقم داخل الدائرة -->
+        <div class="timer-number" id="timer-number">80</div>
+      </div>
+    </div>
+
+    <!-- نص السؤال الرئيسي -->
+    <div class="question-text-area">
+      <div class="question-text" id="question-text-display"></div>
+    </div>
+
+    <!-- QR Code لفئة ولا كلمة -->
+    <div class="barcode-display" id="barcode-area">
+      <p>📱 صوّر الباركود لتعرف ما تجسّده</p>
+      <canvas id="qrCanvas" width="150" height="150"></canvas>
+      <p id="barcode-text-hint"></p>
+    </div>
+
+    <!-- خيارات المساعدة (تظهر فقط عند تفعيل مساعدة الخيارات) -->
+    <div class="options-grid" id="options-grid" style="display:none">
+      <div class="option-btn" id="opt-a"></div>
+      <div class="option-btn" id="opt-b"></div>
+      <div class="option-btn" id="opt-c"></div>
+      <div class="option-btn" id="opt-d"></div>
+    </div>
+
+    <!-- أزرار المساعدات وزر تم -->
+    <div class="question-controls">
+      <!-- مساعدة الخيارات -->
+      <button class="powerup-btn pu-options" id="pu-btn-options">
+        <span class="pu-emoji">📝</span>
+        <span>خيارات</span>
+      </button>
+      <!-- مساعدة الدبل -->
+      <button class="powerup-btn pu-double" id="pu-btn-double">
+        <span class="pu-emoji">🚀</span>
+        <span>دبل</span>
+      </button>
+      <!-- مساعدة السرقة -->
+      <button class="powerup-btn pu-steal" id="pu-btn-steal">
+        <span class="pu-emoji">🥷</span>
+        <span>سرقة</span>
+      </button>
+      <!-- زر تم - يوقف السؤال ويفتح نافذة النتيجة -->
+      <button class="btn-done-main" id="btn-done">✅ تم</button>
+    </div>
+  </div>
+
+  <!-- نافذة نتيجة السؤال (تظهر فوق شاشة السؤال) -->
+  <div class="popup-overlay result-popup" id="popup-result">
+    <div class="popup-box">
+      <h3 class="popup-title">📊 من أجاب صح؟</h3>
+
+      <!-- الإجابة الصحيحة -->
+      <div class="result-answer">
+        <div class="result-answer-label">الإجابة الصحيحة</div>
+        <div class="result-answer-text" id="result-correct-answer"></div>
+      </div>
+
+      <!-- شرح الإجابة إن وُجد -->
+      <div class="result-explanation" id="result-explanation"></div>
+
+      <!-- أزرار منح النقاط -->
+      <div class="result-buttons">
+        <button class="btn btn-team1" id="result-btn-team1">أجاب الفريق الأول ✅</button>
+        <button class="btn btn-team2" id="result-btn-team2">أجاب الفريق الثاني ✅</button>
+        <button class="btn btn-neutral" id="result-btn-none">لا أحد ❌</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================================
+       الشاشة الرابعة: إعلان الفائز
+  ============================================= -->
+  <div id="screen-winner" class="screen">
+    <!-- قصاصات الورق الاحتفالية -->
+    <div class="confetti-container" id="confetti-container"></div>
+
+    <div style="position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:20px">
+      <div class="winner-trophy" id="winner-trophy">🏆</div>
+      <div class="winner-label" id="winner-label">الفائز</div>
+      <div class="winner-name" id="winner-name-display"></div>
+      <div class="winner-score" id="winner-score-display"></div>
+
+      <div class="loser-section" id="loser-section">
+        <div class="loser-name" id="loser-name-display"></div>
+        <div class="loser-score" id="loser-score-display"></div>
+      </div>
+
+      <!-- زر لعبة جديدة -->
+      <button class="btn" id="btn-new-game"
+        style="background:#fff; color:#0F172A; font-size:1.1rem; padding:16px 40px; margin-top:10px">
+        🔄 لعبة جديدة
+      </button>
+    </div>
+  </div>
+
+  <!-- =============================================
+       JavaScript - كل المنطق البرمجي
+  ============================================= -->
+  <script>
+  /* ================================================
+     ١. قائمة الفئات الـ 12
+  ================================================ */
+  const ALL_CATEGORIES = [
+    { id: 'general',   name: 'معلومات عامة',      emoji: '🧠' },
+    { id: 'animals',   name: 'عالم الحيوان',       emoji: '🐪' },
+    { id: 'literature',name: 'أدب ولغات',          emoji: '📚' },
+    { id: 'science',   name: 'علوم',               emoji: '🧪' },
+    { id: 'sports',    name: 'رياضة',              emoji: '⚽' },
+    { id: 'cars',      name: 'عالم السيارات',      emoji: '🚗' },
+    { id: 'games',     name: 'ألعاب فيديو',        emoji: '🎮' },
+    { id: 'proverbs',  name: 'أمثال وألغاز',       emoji: '🧩' },
+    { id: 'islamic',   name: 'معلومات إسلامية',    emoji: '🕌' },
+    { id: 'geography', name: 'جغرافيا',            emoji: '🌍' },
+    { id: 'history',   name: 'تاريخ وأحداث',       emoji: '🏺' },
+    { id: 'charades',  name: 'ولا كلمة',           emoji: '🎭' },
+  ];
+
+  /* ================================================
+     ٢. إعدادات قاعدة البيانات (Google Sheets)
+     ضع رابط جدولك هنا بعد ما تسوي الجدول
+  ================================================ */
+  const SHEETS_CONFIG = {
+    // عدّل هذا الرابط بعد ما تسوي الجدول في Google Sheets
+    // الصيغة: https://docs.google.com/spreadsheets/d/SHEET_ID/gviz/tq?tqx=out:json
+    url: 'YOUR_GOOGLE_SHEET_URL_HERE',
+    // هل البيانات محملة؟ (false = نستخدم بيانات تجريبية)
+    loaded: false,
+  };
+
+  /* ================================================
+     ٣. بيانات تجريبية (تُستخدم حتى تربط Google Sheets)
+     الأعمدة في جداول جوجل يجب أن تكون:
+     id | category | difficulty | points | question | answer | option_b | option_c | option_d | barcode_text | explanation
+  ================================================ */
+  const DEMO_QUESTIONS = [
+    // ─── معلومات عامة ───
+    { id:'Q001', category:'general', difficulty:'easy',   points:200, question:'ما هي أكبر قارة في العالم؟',                answer:'آسيا',         option_b:'أفريقيا',   option_c:'أوروبا',    option_d:'أمريكا',   barcode_text:'', explanation:'آسيا تمثل حوالي 30% من مساحة اليابسة.' },
+    { id:'Q002', category:'general', difficulty:'easy',   points:200, question:'كم عدد أيام السنة الكبيسة؟',              answer:'366 يوم',      option_b:'365 يوم',   option_c:'364 يوم',   option_d:'367 يوم',  barcode_text:'', explanation:'' },
+    { id:'Q003', category:'general', difficulty:'medium', points:400, question:'ما هي العملة الرسمية لليابان؟',           answer:'الين',         option_b:'الوون',     option_c:'اليوان',    option_d:'الدولار',  barcode_text:'', explanation:'' },
+    { id:'Q004', category:'general', difficulty:'medium', points:400, question:'من اخترع التلفون؟',                        answer:'ألكسندر بيل',  option_b:'إديسون',    option_c:'نيوتن',     option_d:'داروين',   barcode_text:'', explanation:'' },
+    { id:'Q005', category:'general', difficulty:'hard',   points:600, question:'ما هي أصغر دولة في العالم من حيث المساحة؟', answer:'الفاتيكان',  option_b:'موناكو',    option_c:'سان مارينو',option_d:'ليختنشتاين',barcode_text:'', explanation:'' },
+    { id:'Q006', category:'general', difficulty:'hard',   points:600, question:'في أي عام اخترع رايت الطائرة؟',           answer:'١٩٠٣',         option_b:'١٨٩٩',     option_c:'١٩١٠',     option_d:'١٨٩٥',    barcode_text:'', explanation:'' },
+
+    // ─── عالم الحيوان ───
+    { id:'Q007', category:'animals', difficulty:'easy',   points:200, question:'ما هو أسرع حيوان بري في العالم؟',         answer:'الفهد',       option_b:'الأسد',     option_c:'الحصان',    option_d:'النمر',    barcode_text:'', explanation:'' },
+    { id:'Q008', category:'animals', difficulty:'easy',   points:200, question:'كم عدد أرجل العنكبوت؟',                    answer:'8',            option_b:'6',          option_c:'10',        option_d:'12',       barcode_text:'', explanation:'' },
+    { id:'Q009', category:'animals', difficulty:'medium', points:400, question:'ما هو الحيوان الثديي الوحيد القادر على الطيران؟', answer:'الخفاش', option_b:'الغدة',    option_c:'القنفذ',    option_d:'السنجاب',  barcode_text:'', explanation:'' },
+    { id:'Q010', category:'animals', difficulty:'medium', points:400, question:'كم مدة حمل الفيلة؟',                        answer:'22 شهراً',     option_b:'12 شهراً',  option_c:'18 شهراً',  option_d:'9 أشهر',   barcode_text:'', explanation:'' },
+    { id:'Q011', category:'animals', difficulty:'hard',   points:600, question:'ما اسم الفصيلة التي ينتمي إليها الدلفين؟',  answer:'الدلفينيات', option_b:'الحيتانيات',option_c:'الفقمات',   option_d:'الكيتاسيا',barcode_text:'', explanation:'' },
+    { id:'Q012', category:'animals', difficulty:'hard',   points:600, question:'أي حيوان يملك بصمة أصابع مشابهة للإنسان؟', answer:'الكوالا',     option_b:'القرد',    option_c:'الدب',      option_d:'الكنغر',   barcode_text:'', explanation:'' },
+
+    // ─── أدب ولغات ───
+    { id:'Q013', category:'literature', difficulty:'easy',   points:200, question:'ما معنى كلمة "أريج"؟',               answer:'رائحة طيبة',   option_b:'ضوء خافت',  option_c:'صوت خفيف',  option_d:'ماء جارٍ', barcode_text:'', explanation:'' },
+    { id:'Q014', category:'literature', difficulty:'easy',   points:200, question:'من كتب "أيام" في الأدب العربي؟',     answer:'طه حسين',      option_b:'العقاد',    option_c:'المنفلوطي', option_d:'شوقي',     barcode_text:'', explanation:'' },
+    { id:'Q015', category:'literature', difficulty:'medium', points:400, question:'ما معنى كلمة "بَلَغَ" في الفصحى؟',   answer:'وصل وأدرك',    option_b:'كذب',       option_c:'طلب',       option_d:'رفض',      barcode_text:'', explanation:'' },
+    { id:'Q016', category:'literature', difficulty:'medium', points:400, question:'من هو شاعر النيل؟',                   answer:'حافظ إبراهيم', option_b:'أحمد شوقي', option_c:'المتنبي',   option_d:'نزار قباني',barcode_text:'', explanation:'' },
+    { id:'Q017', category:'literature', difficulty:'hard',   points:600, question:'من ألّف كتاب "الكامل في التاريخ"؟',  answer:'ابن الأثير',   option_b:'الطبري',    option_c:'ابن خلدون', option_d:'المسعودي', barcode_text:'', explanation:'' },
+    { id:'Q018', category:'literature', difficulty:'hard',   points:600, question:'ما اسم ديوان المتنبي الأكثر شهرة؟',  answer:'ديوان المتنبي',option_b:'المعلقات',  option_c:'الحماسة',   option_d:'الأغاني',  barcode_text:'', explanation:'' },
+
+    // ─── علوم ───
+    { id:'Q019', category:'science', difficulty:'easy',   points:200, question:'ما هو الكوكب الأحمر؟',                   answer:'المريخ',       option_b:'المشتري',   option_c:'زحل',       option_d:'الزهرة',   barcode_text:'', explanation:'' },
+    { id:'Q020', category:'science', difficulty:'easy',   points:200, question:'ما هو أكثر العناصر توفراً في الغلاف الجوي؟', answer:'النيتروجين', option_b:'الأكسجين', option_c:'ثاني أكسيد الكربون', option_d:'الهيدروجين', barcode_text:'', explanation:'' },
+    { id:'Q021', category:'science', difficulty:'medium', points:400, question:'ما هو الرمز الكيميائي للذهب؟',           answer:'Au',           option_b:'Go',         option_c:'Gd',        option_d:'Ag',       barcode_text:'', explanation:'مشتق من الكلمة اللاتينية Aurum.' },
+    { id:'Q022', category:'science', difficulty:'medium', points:400, question:'كم يبلغ الوزن الذري للكربون؟',           answer:'12',           option_b:'6',          option_c:'14',        option_d:'8',        barcode_text:'', explanation:'' },
+    { id:'Q023', category:'science', difficulty:'hard',   points:600, question:'ما اسم المجرة التي تسكنها الأرض؟',       answer:'درب التبانة',  option_b:'أندروميدا', option_c:'المثلث',    option_d:'الدوامة',  barcode_text:'', explanation:'' },
+    { id:'Q024', category:'science', difficulty:'hard',   points:600, question:'في أي عام اكتُشف الثقب الأسود؟',         answer:'١٩١٦ (نظرياً)',option_b:'١٩٥٠',    option_c:'٢٠٠٠',     option_d:'١٨٨٨',    barcode_text:'', explanation:'' },
+
+    // ─── رياضة ───
+    { id:'Q025', category:'sports', difficulty:'easy',   points:200, question:'كم عدد لاعبي كرة القدم في الملعب لكل فريق؟', answer:'11',         option_b:'10',        option_c:'12',        option_d:'9',        barcode_text:'', explanation:'' },
+    { id:'Q026', category:'sports', difficulty:'easy',   points:200, question:'أين أُقيمت كأس العالم 2022؟',              answer:'قطر',          option_b:'روسيا',     option_c:'البرازيل',  option_d:'ألمانيا',  barcode_text:'', explanation:'' },
+    { id:'Q027', category:'sports', difficulty:'medium', points:400, question:'من فاز بكأس العالم 2018 في روسيا؟',        answer:'فرنسا',        option_b:'كرواتيا',   option_c:'البرازيل',  option_d:'ألمانيا',  barcode_text:'', explanation:'' },
+    { id:'Q028', category:'sports', difficulty:'medium', points:400, question:'كم عدد لاعبي كرة السلة في الملعب لكل فريق؟', answer:'5',          option_b:'6',          option_c:'7',         option_d:'4',        barcode_text:'', explanation:'' },
+    { id:'Q029', category:'sports', difficulty:'hard',   points:600, question:'من سجّل هدف المرمى من النصف في تاريخ كأس العالم؟', answer:'مالدوناودو عام ٢٠١٤', option_b:'بيكهام', option_c:'رونالدو', option_d:'ميسي', barcode_text:'', explanation:'' },
+    { id:'Q030', category:'sports', difficulty:'hard',   points:600, question:'في أي عام أُسّس نادي ريال مدريد؟',        answer:'١٩٠٢',         option_b:'١٨٩٧',     option_c:'١٩١٠',     option_d:'١٨٨٩',    barcode_text:'', explanation:'' },
+
+    // ─── عالم السيارات ───
+    { id:'Q031', category:'cars', difficulty:'easy',   points:200, question:'ما جنسية شركة تويوتا؟',                       answer:'يابانية',      option_b:'كورية',     option_c:'أمريكية',   option_d:'ألمانية',  barcode_text:'', explanation:'' },
+    { id:'Q032', category:'cars', difficulty:'easy',   points:200, question:'ماذا تعني BMW اختصاراً؟',                    answer:'Bayerische Motoren Werke', option_b:'Best Motor Works', option_c:'British Motor World', option_d:'Bavarian Machine Works', barcode_text:'', explanation:'' },
+    { id:'Q033', category:'cars', difficulty:'medium', points:400, question:'أي شركة سيارات تنتج موديل "Mustang"؟',       answer:'فورد',         option_b:'شيفروليه', option_c:'دودج',       option_d:'كرايسلر',  barcode_text:'', explanation:'' },
+    { id:'Q034', category:'cars', difficulty:'medium', points:400, question:'ما أسرع سيارة إنتاجية في العالم حتى ٢٠٢٣؟', answer:'بوغاتي شيرون',option_b:'كونيغسيغ', option_c:'لامبورغيني', option_d:'كوينتيسيك', barcode_text:'', explanation:'' },
+    { id:'Q035', category:'cars', difficulty:'hard',   points:600, question:'في أي عام أُسّست شركة تويوتا؟',              answer:'١٩٣٧',         option_b:'١٩٢٥',     option_c:'١٩٤٥',     option_d:'١٩٥٠',    barcode_text:'', explanation:'' },
+    { id:'Q036', category:'cars', difficulty:'hard',   points:600, question:'ما نوع محرك موديل تسلا موديل S؟',            answer:'كهربائي بالكامل', option_b:'هجين', option_c:'ديزل',       option_d:'هيدروجين', barcode_text:'', explanation:'' },
+
+    // ─── ألعاب فيديو ───
+    { id:'Q037', category:'games', difficulty:'easy',   points:200, question:'ما اسم الشركة المنتجة للبلايستيشن؟',         answer:'سوني',         option_b:'مايكروسوفت',option_c:'نينتندو',   option_d:'سيغا',     barcode_text:'', explanation:'' },
+    { id:'Q038', category:'games', difficulty:'easy',   points:200, question:'ما اسم الشخصية الرئيسية في لعبة Zelda؟',    answer:'لينك',         option_b:'زيلدا',     option_c:'غانون',     option_d:'بوبو',     barcode_text:'', explanation:'' },
+    { id:'Q039', category:'games', difficulty:'medium', points:400, question:'في أي عام صدرت لعبة Minecraft؟',             answer:'٢٠١١',         option_b:'٢٠٠٨',     option_c:'٢٠١٣',     option_d:'٢٠٠٩',    barcode_text:'', explanation:'' },
+    { id:'Q040', category:'games', difficulty:'medium', points:400, question:'ما اسم الاستوديو المطور للعبة GTA V؟',       answer:'Rockstar Games',option_b:'EA Sports', option_c:'Ubisoft',   option_d:'Activision',barcode_text:'', explanation:'' },
+    { id:'Q041', category:'games', difficulty:'hard',   points:600, question:'ما أول لعبة فيديو تجارية في التاريخ؟',      answer:'Pong',         option_b:'Space Invaders',option_c:'Pac-Man',option_d:'Tetris',   barcode_text:'', explanation:'' },
+    { id:'Q042', category:'games', difficulty:'hard',   points:600, question:'من مؤسس شركة Nintendo؟',                    answer:'فوساجيرو ياماوتشي', option_b:'هيروشي ياماوتشي', option_c:'شيغيرو مياموتو', option_d:'ساتورو إيواتا', barcode_text:'', explanation:'' },
+
+    // ─── أمثال وألغاز ───
+    { id:'Q043', category:'proverbs', difficulty:'easy',   points:200, question:'كمّل المثل: "اللي ما يعرف الصقر..."',    answer:'"يشويه"',      option_b:'"يبيعه"',   option_c:'"يطيره"',   option_d:'"يأكله"',  barcode_text:'', explanation:'مثل كويتي شهير.' },
+    { id:'Q044', category:'proverbs', difficulty:'easy',   points:200, question:'كمّل المثل: "العين بصيرة..."',           answer:'"واليد قصيرة"',option_b:'"والقلب حائر"',option_c:'"والنفس صابرة"',option_d:'"والأمل كبير"',barcode_text:'', explanation:'' },
+    { id:'Q045', category:'proverbs', difficulty:'medium', points:400, question:'اللي أربعة ومو قادر، وواحد يرفعه - ما هو؟', answer:'الغطاء',    option_b:'الباب',     option_c:'الطاولة',   option_d:'الكرسي',   barcode_text:'', explanation:'لغز شعبي: أربعة أرجل لكرسي لكن لا يرفعه إلا يد واحدة. الإجابة الصحيحة هي الغطاء (الغطاء بالأربعة أصابع).' },
+    { id:'Q046', category:'proverbs', difficulty:'medium', points:400, question:'كمّل المثل: "صديق في الضيق..."',         answer:'"صديق حقيقي"', option_b:'"نعمة عظيمة"',option_c:'"خير من ألف"',option_d:'"يساوي الذهب"',barcode_text:'', explanation:'' },
+    { id:'Q047', category:'proverbs', difficulty:'hard',   points:600, question:'ما معنى المثل: "خذ الحكمة من أفواه المجانين"؟', answer:'الحكمة لا مصدر لها', option_b:'المجانين حكماء', option_c:'استمع للجميع', option_d:'لا تثق بعاقل', barcode_text:'', explanation:'' },
+    { id:'Q048', category:'proverbs', difficulty:'hard',   points:600, question:'من أصل أي لغة جاء مثل "الوقت من ذهب"؟', answer:'يوناني قديم',  option_b:'لاتيني',    option_c:'فارسي',     option_d:'عربي',     barcode_text:'', explanation:'' },
+
+    // ─── معلومات إسلامية ───
+    { id:'Q049', category:'islamic', difficulty:'easy',   points:200, question:'كم عدد أركان الإسلام؟',                   answer:'5',            option_b:'6',          option_c:'4',         option_d:'7',        barcode_text:'', explanation:'' },
+    { id:'Q050', category:'islamic', difficulty:'easy',   points:200, question:'ما اسم أول سورة في القرآن الكريم؟',       answer:'الفاتحة',      option_b:'البقرة',    option_c:'الناس',     option_d:'الإخلاص', barcode_text:'', explanation:'' },
+    { id:'Q051', category:'islamic', difficulty:'medium', points:400, question:'في أي شهر نزل القرآن الكريم؟',            answer:'رمضان',        option_b:'محرم',       option_c:'شعبان',     option_d:'ذو الحجة', barcode_text:'', explanation:'' },
+    { id:'Q052', category:'islamic', difficulty:'medium', points:400, question:'ما اسم أول مسجد في الإسلام؟',              answer:'مسجد قباء',    option_b:'المسجد الحرام',option_c:'المسجد النبوي',option_d:'المسجد الأقصى',barcode_text:'', explanation:'' },
+    { id:'Q053', category:'islamic', difficulty:'hard',   points:600, question:'كم عدد غزوات النبي ﷺ؟',                  answer:'27 غزوة',      option_b:'20 غزوة',   option_c:'30 غزوة',   option_d:'15 غزوة',  barcode_text:'', explanation:'' },
+    { id:'Q054', category:'islamic', difficulty:'hard',   points:600, question:'ما اسم الصحابي الذي جمع القرآن الكريم في عهده؟', answer:'عثمان بن عفان', option_b:'أبو بكر الصديق', option_c:'عمر بن الخطاب', option_d:'علي بن أبي طالب', barcode_text:'', explanation:'' },
+
+    // ─── جغرافيا ───
+    { id:'Q055', category:'geography', difficulty:'easy',   points:200, question:'ما عاصمة فرنسا؟',                       answer:'باريس',        option_b:'لندن',      option_c:'برلين',     option_d:'مدريد',    barcode_text:'', explanation:'' },
+    { id:'Q056', category:'geography', difficulty:'easy',   points:200, question:'ما أطول نهر في العالم؟',                answer:'النيل',        option_b:'الأمازون',  option_c:'المسيسيبي', option_d:'اليانغتسي', barcode_text:'', explanation:'' },
+    { id:'Q057', category:'geography', difficulty:'medium', points:400, question:'ما عاصمة أستراليا؟',                    answer:'كانبيرا',      option_b:'سيدني',     option_c:'ملبورن',    option_d:'بريسبان',  barcode_text:'', explanation:'كثير يخطئ ويقول سيدني!' },
+    { id:'Q058', category:'geography', difficulty:'medium', points:400, question:'ما أكبر دولة في العالم مساحةً؟',        answer:'روسيا',        option_b:'الصين',    option_c:'الولايات المتحدة',option_d:'كندا',  barcode_text:'', explanation:'' },
+    { id:'Q059', category:'geography', difficulty:'hard',   points:600, question:'ما اسم أصغر دولة في قارة أمريكا الجنوبية؟', answer:'سورينام',   option_b:'أوروغواي',  option_c:'غيانا',     option_d:'باراغواي', barcode_text:'', explanation:'' },
+    { id:'Q060', category:'geography', difficulty:'hard',   points:600, question:'عبر كم دولة يمر نهر الأمازون؟',         answer:'9 دول',        option_b:'5 دول',     option_c:'7 دول',     option_d:'12 دولة',  barcode_text:'', explanation:'' },
+
+    // ─── تاريخ وأحداث ───
+    { id:'Q061', category:'history', difficulty:'easy',   points:200, question:'في أي عام غزا صدام حسين الكويت؟',         answer:'١٩٩٠',         option_b:'١٩٨٨',     option_c:'١٩٩٢',     option_d:'١٩٨٥',    barcode_text:'', explanation:'2 أغسطس 1990.' },
+    { id:'Q062', category:'history', difficulty:'easy',   points:200, question:'من هو أول رئيس للولايات المتحدة؟',        answer:'جورج واشنطن',  option_b:'أبراهام لينكولن',option_c:'توماس جيفرسون',option_d:'جون آدامز',barcode_text:'', explanation:'' },
+    { id:'Q063', category:'history', difficulty:'medium', points:400, question:'متى انتهت الحرب العالمية الثانية؟',        answer:'١٩٤٥',         option_b:'١٩٤٣',     option_c:'١٩٤٧',     option_d:'١٩٤١',    barcode_text:'', explanation:'' },
+    { id:'Q064', category:'history', difficulty:'medium', points:400, question:'من قائد معركة حطين؟',                      answer:'صلاح الدين الأيوبي', option_b:'عمر بن الخطاب', option_c:'خالد بن الوليد', option_d:'نور الدين زنكي', barcode_text:'', explanation:'' },
+    { id:'Q065', category:'history', difficulty:'hard',   points:600, question:'في أي عام سقطت القسطنطينية؟',             answer:'١٤٥٣',         option_b:'١٣٩٩',     option_c:'١٥٠٠',     option_d:'١٤٢٠',    barcode_text:'', explanation:'على يد محمد الفاتح.' },
+    { id:'Q066', category:'history', difficulty:'hard',   points:600, question:'ما اسم معاهدة السلام التي أنهت الحرب العالمية الأولى؟', answer:'معاهدة فرساي', option_b:'معاهدة باريس', option_c:'معاهدة لندن', option_d:'معاهدة برلين', barcode_text:'', explanation:'' },
+
+    // ─── ولا كلمة ───
+    { id:'Q067', category:'charades', difficulty:'easy',   points:200, question:'مثّل هذه الكلمة بدون صوت', answer:'نجار',         option_b:'', option_c:'', option_d:'', barcode_text:'نجار', explanation:'' },
+    { id:'Q068', category:'charades', difficulty:'easy',   points:200, question:'مثّل هذه الكلمة بدون صوت', answer:'طيارة',        option_b:'', option_c:'', option_d:'', barcode_text:'طيارة', explanation:'' },
+    { id:'Q069', category:'charades', difficulty:'medium', points:400, question:'مثّل هذه الجملة بدون صوت', answer:'يلعب كرة قدم', option_b:'', option_c:'', option_d:'', barcode_text:'يلعب كرة قدم', explanation:'' },
+    { id:'Q070', category:'charades', difficulty:'medium', points:400, question:'مثّل هذا الفيلم بدون صوت',  answer:'توباك',        option_b:'', option_c:'', option_d:'', barcode_text:'فيلم توباك', explanation:'' },
+    { id:'Q071', category:'charades', difficulty:'hard',   points:600, question:'مثّل هذا المسلسل بدون صوت', answer:'باب الحارة',   option_b:'', option_c:'', option_d:'', barcode_text:'مسلسل باب الحارة', explanation:'' },
+    { id:'Q072', category:'charades', difficulty:'hard',   points:600, question:'مثّل هذه المهنة بدون صوت',  answer:'طبيب أسنان',   option_b:'', option_c:'', option_d:'', barcode_text:'طبيب أسنان', explanation:'' },
+  ];
+
+  /* ================================================
+     ٤. حالة اللعبة (State) - كل بيانات الجلسة هنا
+  ================================================ */
+  let gameState = {
+    // الفئات المختارة من شاشة الإعداد
+    selectedCategories: [],
+
+    // أسماء الفريقين
+    teamNames: ['الفريق الأول', 'الفريق الثاني'],
+
+    // نقاط الفريقين
+    scores: [0, 0],
+
+    // المساعدات المتبقية لكل فريق: true = متاحة، false = استُخدمت
+    powerups: [
+      { options: true, double: true, steal: true },
+      { options: true, double: true, steal: true },
+    ],
+
+    // الفريق الذي دوره الحالي (0 = الأول، 1 = الثاني)
+    currentTurn: 0,
+
+    // السؤال الحالي المفتوح
+    currentQuestion: null,
+
+    // قيمة السؤال الفعلية (قد تتضاعف بالدبل)
+    currentPoints: 0,
+
+    // هل تم تفعيل الدبل في السؤال الحالي؟
+    doubleActive: false,
+
+    // هل تم تفعيل السرقة في السؤال الحالي؟
+    stealActive: false,
+
+    // الأسئلة التي لُعبت في هذه الجلسة
+    playedThisSession: new Set(),
+
+    // جميع الأسئلة التي لُعبت في كل الجلسات (محفوظة في Local Storage)
+    playedAllTime: new Set(),
+
+    // الأسئلة المحملة من Google Sheets أو التجريبية
+    allQuestions: [],
+  };
+
+  /* ================================================
+     ٥. تحميل الأسئلة من Local Storage و Google Sheets
+  ================================================ */
+  function initializeGame() {
+    // تحميل الأسئلة التي سبق لعبها من المتصفح
+    const stored = localStorage.getItem('quiz_played_ids');
+    if (stored) {
+      try {
+        const ids = JSON.parse(stored);
+        gameState.playedAllTime = new Set(ids);
+      } catch(e) {
+        gameState.playedAllTime = new Set();
+      }
+    }
+
+    // نستخدم البيانات التجريبية مباشرة
+    // عندما تربط Google Sheets، غيّر هذا السطر لاستدعاء fetchQuestionsFromSheets()
+    gameState.allQuestions = DEMO_QUESTIONS;
+    console.log(`✅ محُمّل ${gameState.allQuestions.length} سؤال`);
+
+    // بناء شبكة الفئات
+    buildCategoriesGrid();
+  }
+
+  /* ================================================
+     ٦. بناء شبكة الفئات في شاشة الإعداد
+  ================================================ */
+  function buildCategoriesGrid() {
+    const grid = document.getElementById('categories-grid');
+    grid.innerHTML = '';
+
+    ALL_CATEGORIES.forEach(cat => {
+      const card = document.createElement('div');
+      card.className = 'cat-card';
+      card.dataset.id = cat.id;
+      card.innerHTML = `
+        <span class="cat-emoji">${cat.emoji}</span>
+        <span class="cat-name">${cat.name}</span>
+      `;
+
+      // عند الضغط على البطاقة
+      card.addEventListener('click', () => toggleCategory(card, cat.id));
+
+      grid.appendChild(card);
+    });
+  }
+
+  /* ================================================
+     ٧. تبديل اختيار الفئة (اختيار / إلغاء)
+  ================================================ */
+  function toggleCategory(card, catId) {
+    const isSelected = card.classList.contains('selected');
+
+    if (isSelected) {
+      // إلغاء الاختيار
+      card.classList.remove('selected');
+      gameState.selectedCategories = gameState.selectedCategories.filter(id => id !== catId);
+    } else {
+      // التأكد من عدم تجاوز 6 فئات
+      if (gameState.selectedCategories.length >= 6) return;
+      card.classList.add('selected');
+      gameState.selectedCategories.push(catId);
+    }
+
+    // تحديث العداد
+    document.getElementById('selected-count').textContent = gameState.selectedCategories.length;
+
+    // تعطيل البطاقات الغير مختارة إذا وصلنا 6
+    const allCards = document.querySelectorAll('.cat-card');
+    const reachedMax = gameState.selectedCategories.length >= 6;
+
+    allCards.forEach(c => {
+      if (reachedMax && !c.classList.contains('selected')) {
+        c.classList.add('disabled');
+      } else {
+        c.classList.remove('disabled');
+      }
+    });
+
+    // إظهار / إخفاء زر البدء
+    const btnStart = document.getElementById('btn-open-popup');
+    btnStart.style.display = reachedMax ? 'block' : 'none';
+  }
+
+  /* ================================================
+     ٨. فتح نافذة أسماء الفرق
+  ================================================ */
+  document.getElementById('btn-open-popup').addEventListener('click', () => {
+    document.getElementById('popup-names').classList.add('active');
+  });
+
+  /* ================================================
+     ٩. بدء اللعبة عند الضغط على "العب الآن"
+  ================================================ */
+  document.getElementById('btn-play-now').addEventListener('click', () => {
+    // قراءة أسماء الفرق (أو استخدام الافتراضي)
+    const t1 = document.getElementById('input-team1').value.trim() || 'الفريق الأول';
+    const t2 = document.getElementById('input-team2').value.trim() || 'الفريق الثاني';
+    gameState.teamNames = [t1, t2];
+
+    // إعادة تعيين حالة اللعبة
+    gameState.scores = [0, 0];
+    gameState.currentTurn = 0;
+    gameState.powerups = [
+      { options: true, double: true, steal: true },
+      { options: true, double: true, steal: true },
+    ];
+    gameState.playedThisSession = new Set();
+    gameState.doubleActive = false;
+    gameState.stealActive = false;
+
+    // بناء لوحة اللعب
+    buildBoard();
+
+    // إخفاء الـ popup وإظهار الشاشة الثانية
+    document.getElementById('popup-names').classList.remove('active');
+    showScreen('screen-board');
+  });
+
+  /* ================================================
+     ١٠. بناء لوحة اللعب الرئيسية
+  ================================================ */
+  function buildBoard() {
+    // تحديث الأسماء والنقاط
+    document.getElementById('display-team1-name').textContent = gameState.teamNames[0];
+    document.getElementById('display-team2-name').textContent = gameState.teamNames[1];
+    updateScoreboard();
+
+    // بناء شبكة الأسئلة
+    const grid = document.getElementById('questions-grid');
+    grid.innerHTML = '';
+
+    // نحصل على الأسئلة المتاحة (غير مُلعبة سابقاً)
+    const available = gameState.allQuestions.filter(q => !gameState.playedAllTime.has(q.id));
+
+    gameState.selectedCategories.forEach(catId => {
+      const catInfo = ALL_CATEGORIES.find(c => c.id === catId);
+      const col = document.createElement('div');
+      col.className = 'category-column';
+
+      // عنوان التصنيف
+      col.innerHTML = `
+        <div class="category-header">
+          <span class="cat-header-emoji">${catInfo.emoji}</span>
+          <span style="font-size:0.65rem">${catInfo.name}</span>
+        </div>
+      `;
+
+      // لكل مستوى صعوبة، نأخذ سؤالين (واحد لكل فريق)
+      [200, 400, 600].forEach(pts => {
+        const difficulty = pts === 200 ? 'easy' : pts === 400 ? 'medium' : 'hard';
+
+        // نصفي الأسئلة المتاحة لهذه الفئة والصعوبة
+        const pool = available.filter(q => q.category === catId && q.difficulty === difficulty);
+
+        // نختار سؤالين عشوائيين
+        const picked = pickRandom(pool, 2);
+
+        const pair = document.createElement('div');
+        pair.className = 'question-pair';
+
+        // نسوي زرين - سؤال للفريق الأول وسؤال للفريق الثاني
+        for (let i = 0; i < 2; i++) {
+          const btn = document.createElement('button');
+          btn.className = 'q-btn';
+          btn.textContent = pts;
+
+          if (picked[i]) {
+            // نحفظ بيانات السؤال داخل الزر
+            btn.dataset.qid = picked[i].id;
+            btn.addEventListener('click', () => openQuestion(picked[i], btn));
+          } else {
+            // ما في سؤال متاح - نعطّل الزر
+            btn.classList.add('played');
+            btn.textContent = '—';
+          }
+
+          pair.appendChild(btn);
+        }
+
+        col.appendChild(pair);
+      });
+
+      grid.appendChild(col);
+    });
+  }
+
+  /* ================================================
+     ١١. اختيار عناصر عشوائية من مصفوفة
+  ================================================ */
+  function pickRandom(arr, count) {
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }
+
+  /* ================================================
+     ١٢. تحديث واجهة النتائج والمؤشرات
+  ================================================ */
+  function updateScoreboard() {
+    // تحديث النقاط
+    document.getElementById('display-team1-score').textContent = gameState.scores[0].toLocaleString('ar-EG');
+    document.getElementById('display-team2-score').textContent = gameState.scores[1].toLocaleString('ar-EG');
+
+    // تمييز الفريق الذي دوره
+    const card1 = document.getElementById('card-team1');
+    const card2 = document.getElementById('card-team2');
+    card1.classList.remove('team1-active', 'team2-active');
+    card2.classList.remove('team1-active', 'team2-active');
+
+    if (gameState.currentTurn === 0) {
+      card1.classList.add('team1-active');
+    } else {
+      card2.classList.add('team2-active');
+    }
+
+    // تحديث مؤشر الدور
+    document.getElementById('turn-label').textContent = gameState.teamNames[gameState.currentTurn];
+
+    // تحديث أيقونات المساعدات
+    updatePowerupIcons();
+  }
+
+  /* ================================================
+     ١٣. تحديث أيقونات المساعدات في اللوحة الرئيسية
+  ================================================ */
+  function updatePowerupIcons() {
+    // الفريق الأول
+    toggleIcon('t1-pu-options', gameState.powerups[0].options);
+    toggleIcon('t1-pu-double',  gameState.powerups[0].double);
+    toggleIcon('t1-pu-steal',   gameState.powerups[0].steal);
+
+    // الفريق الثاني
+    toggleIcon('t2-pu-options', gameState.powerups[1].options);
+    toggleIcon('t2-pu-double',  gameState.powerups[1].double);
+    toggleIcon('t2-pu-steal',   gameState.powerups[1].steal);
+  }
+
+  function toggleIcon(id, available) {
+    const el = document.getElementById(id);
+    if (available) {
+      el.classList.remove('used');
+    } else {
+      el.classList.add('used');
+    }
+  }
+
+  /* ================================================
+     ١٤. فتح شاشة السؤال
+  ================================================ */
+  let timerInterval = null; // المتغير الذي يخزن مؤقت العد التنازلي
+
+  function openQuestion(question, btn) {
+    // حفظ بيانات السؤال في الحالة
+    gameState.currentQuestion = question;
+    gameState.currentPoints = question.points;
+    gameState.doubleActive = false;
+    gameState.stealActive = false;
+
+    // إخفاء الخيارات الأربعة
+    document.getElementById('options-grid').style.display = 'none';
+
+    // عرض معلومات السؤال
+    const catInfo = ALL_CATEGORIES.find(c => c.id === question.category);
+    document.getElementById('q-category-label').textContent = `${catInfo.emoji} ${catInfo.name}`;
+    document.getElementById('q-points-label').textContent = `💰 ${question.points} نقطة`;
+    document.getElementById('question-text-display').textContent = question.question;
+
+    // QR Code لفئة "ولا كلمة"
+    const barcodeArea = document.getElementById('barcode-area');
+    if (question.category === 'charades' && question.barcode_text) {
+      barcodeArea.classList.add('visible');
+      document.getElementById('barcode-text-hint').textContent = `النص: ${question.barcode_text}`;
+      drawQRCode(question.barcode_text);
+    } else {
+      barcodeArea.classList.remove('visible');
+    }
+
+    // تهيئة أزرار المساعدات حسب الفريق الحالي
+    const t = gameState.currentTurn;
+    setButtonState('pu-btn-options', gameState.powerups[t].options);
+    setButtonState('pu-btn-double',  gameState.powerups[t].double);
+    setButtonState('pu-btn-steal',   gameState.powerups[t].steal);
+
+    // الانتقال لشاشة السؤال
+    showScreen('screen-question');
+
+    // تعليم الزر في اللوحة حتى لا يُضغط مرة ثانية
+    if (btn) {
+      btn._questionBtn = true;
+      btn._originalQuestion = question;
+    }
+    gameState.currentBtn = btn;
+
+    // بدء المؤقت
+    startTimer();
+  }
+
+  /* تفعيل / تعطيل زر مساعدة */
+  function setButtonState(id, available) {
+    const btn = document.getElementById(id);
+    if (available) {
+      btn.classList.remove('used-pu');
+    } else {
+      btn.classList.add('used-pu');
+    }
+  }
+
+  /* ================================================
+     ١٥. المؤقت - 80 ثانية إجمالي
+     0-50: وقت الفريق الحالي (برتقالي أو أخضر)
+     50-60: وميض تحذيري (نفس اللون)
+     60: انتقال للفريق الثاني
+     60-70: وقت الخصم
+     70-80: وميض تحذيري للخصم
+     بعد 80: يتوقف ويصبح محايد
+  ================================================ */
+  function startTimer() {
+    clearInterval(timerInterval); // إيقاف أي مؤقت سابق
+
+    const TOTAL = 80;
+    const circumference = 238.76; // محيط الدائرة: 2 * π * 38
+    let secondsLeft = TOTAL;
+
+    const ring   = document.getElementById('timer-ring');
+    const number = document.getElementById('timer-number');
+    const circle = document.getElementById('timer-circle');
+
+    // ألوان الفريقين
+    const team1Color = '#F97316';
+    const team2Color = '#22C55E';
+
+    function updateTimer() {
+      // حساب نسبة التقدم
+      const progress = secondsLeft / TOTAL;
+      ring.style.strokeDashoffset = circumference * (1 - progress);
+      number.textContent = secondsLeft;
+
+      // تحديد المرحلة الزمنية
+      if (secondsLeft > 30) {
+        // مرحلة الفريق الأول (0-50 ثانية)
+        ring.style.stroke = gameState.currentTurn === 0 ? team1Color : team2Color;
+        circle.classList.remove('flashing');
+      } else if (secondsLeft > 20) {
+        // وميض تحذيري للفريق الأول (50-60 ثانية)
+        ring.style.stroke = gameState.currentTurn === 0 ? team1Color : team2Color;
+        circle.classList.add('flashing');
+      } else if (secondsLeft > 10) {
+        // انتقال للفريق الثاني (60-70 ثانية)
+        ring.style.stroke = gameState.currentTurn === 0 ? team2Color : team1Color;
+        circle.classList.remove('flashing');
+      } else if (secondsLeft > 0) {
+        // وميض تحذيري للفريق الثاني (70-80 ثانية)
+        ring.style.stroke = gameState.currentTurn === 0 ? team2Color : team1Color;
+        circle.classList.add('flashing');
+      } else {
+        // انتهى الوقت
+        clearInterval(timerInterval);
+        ring.style.stroke = '#475569'; // لون محايد
+        circle.classList.remove('flashing');
+      }
+
+      secondsLeft--;
+    }
+
+    updateTimer(); // تشغيل أول مرة فوراً
+    timerInterval = setInterval(() => {
+      if (secondsLeft < 0) {
+        clearInterval(timerInterval);
+        return;
+      }
+      updateTimer();
+    }, 1000);
+  }
+
+  /* ================================================
+     ١٦. رسم QR Code بسيط باستخدام Canvas
+     (بدون مكتبة خارجية - نرسم النص كبديل بصري)
+  ================================================ */
+  function drawQRCode(text) {
+    const canvas = document.getElementById('qrCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // خلفية بيضاء
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 150, 150);
+
+    // إطار أسود
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(5, 5, 140, 140);
+
+    // نرسم مربعات عشوائية تشبه QR (بسيطة)
+    ctx.fillStyle = '#000000';
+    const seed = text.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const size = 8;
+    const cols = 15;
+    for (let row = 0; row < cols; row++) {
+      for (let col = 0; col < cols; col++) {
+        const val = (seed * (row + 1) * (col + 1) * 13) % 100;
+        if (val > 50) {
+          ctx.fillRect(10 + col * size, 10 + row * size, size - 1, size - 1);
+        }
+      }
+    }
+
+    // مربعات الزوايا (للواجهة فقط)
+    const qSize = 24;
+    ctx.fillStyle = '#000';
+    [[10,10],[106,10],[10,106]].forEach(([x,y]) => {
+      ctx.fillRect(x, y, qSize, qSize);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x+4, y+4, qSize-8, qSize-8);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(x+8, y+8, qSize-16, qSize-16);
+    });
+
+    // كتابة النص تحت الـ QR
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 10px Cairo, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, 75, 148);
+  }
+
+  /* ================================================
+     ١٧. أزرار المساعدات في شاشة السؤال
+  ================================================ */
+
+  /* مساعدة الخيارات - تحويل السؤال لـ 4 خيارات */
+  document.getElementById('pu-btn-options').addEventListener('click', () => {
+    const t = gameState.currentTurn;
+    if (!gameState.powerups[t].options) return;
+
+    const q = gameState.currentQuestion;
+    // نرتب الخيارات: الصحيح + 3 خاطئة في ترتيب عشوائي
+    const allOptions = [q.answer, q.option_b, q.option_c, q.option_d]
+      .filter(o => o && o.trim() !== '');
+
+    if (allOptions.length < 2) {
+      alert('هذا السؤال لا يدعم الخيارات');
+      return;
+    }
+
+    // خلط الخيارات
+    const shuffled = allOptions.sort(() => Math.random() - 0.5);
+
+    // تحديث النص
+    const ids = ['opt-a', 'opt-b', 'opt-c', 'opt-d'];
+    const letters = ['أ', 'ب', 'ج', 'د'];
+    ids.forEach((id, i) => {
+      document.getElementById(id).textContent = `${letters[i]}) ${shuffled[i] || ''}`;
+    });
+
+    // إظهار الخيارات
+    document.getElementById('options-grid').style.display = 'grid';
+
+    // تعطيل الزر وتسجيل الاستخدام
+    gameState.powerups[t].options = false;
+    document.getElementById('pu-btn-options').classList.add('used-pu');
+  });
+
+  /* مساعدة الدبل - مضاعفة النقاط */
+  document.getElementById('pu-btn-double').addEventListener('click', () => {
+    const t = gameState.currentTurn;
+    if (!gameState.powerups[t].double) return;
+
+    gameState.doubleActive = true;
+    gameState.currentPoints = gameState.currentQuestion.points * 2;
+
+    // تحديث ظهور القيمة
+    document.getElementById('q-points-label').textContent =
+      `💰 ${gameState.currentPoints} نقطة 🚀 (مضاعفة!)`;
+
+    // تعطيل الزر
+    gameState.powerups[t].double = false;
+    document.getElementById('pu-btn-double').classList.add('used-pu');
+  });
+
+  /* مساعدة السرقة - سرقة نقاط الخصم */
+  document.getElementById('pu-btn-steal').addEventListener('click', () => {
+    const t = gameState.currentTurn;
+    if (!gameState.powerups[t].steal) return;
+
+    gameState.stealActive = true;
+
+    // تحديث ظهور التوضيح
+    document.getElementById('q-points-label').textContent =
+      `💰 ${gameState.currentPoints} نقطة 🥷 (سرقة من الخصم!)`;
+
+    // تعطيل الزر
+    gameState.powerups[t].steal = false;
+    document.getElementById('pu-btn-steal').classList.add('used-pu');
+  });
+
+  /* ================================================
+     ١٨. زر "تم" - يوقف المؤقت ويفتح نافذة النتيجة
+  ================================================ */
+  document.getElementById('btn-done').addEventListener('click', () => {
+    clearInterval(timerInterval); // إيقاف المؤقت
+
+    const q = gameState.currentQuestion;
+
+    // عرض الإجابة الصحيحة والشرح
+    document.getElementById('result-correct-answer').textContent = q.answer;
+    document.getElementById('result-explanation').textContent = q.explanation || '';
+
+    // تحديث أسماء أزرار الفريقين في الـ popup
+    document.getElementById('result-btn-team1').textContent =
+      `✅ أجاب ${gameState.teamNames[0]}`;
+    document.getElementById('result-btn-team2').textContent =
+      `✅ أجاب ${gameState.teamNames[1]}`;
+
+    // فتح نافذة النتيجة
+    document.getElementById('popup-result').classList.add('active');
+  });
+
+  /* ================================================
+     ١٩. أزرار نافذة النتيجة (من أجاب؟)
+  ================================================ */
+
+  /* الفريق الأول أجاب صح */
+  document.getElementById('result-btn-team1').addEventListener('click', () => {
+    givePoints(0);
+  });
+
+  /* الفريق الثاني أجاب صح */
+  document.getElementById('result-btn-team2').addEventListener('click', () => {
+    givePoints(1);
+  });
+
+  /* لا أحد أجاب */
+  document.getElementById('result-btn-none').addEventListener('click', () => {
+    // نعلم السؤال كمُلعب لكن بدون نقاط لأحد
+    markQuestionPlayed(false);
+    closeResultAndReturn();
+  });
+
+  /* ================================================
+     ٢٠. منح النقاط للفريق المجيب
+  ================================================ */
+  function givePoints(answeringTeam) {
+    const pts = gameState.currentPoints;
+
+    if (gameState.stealActive) {
+      // سرقة: اخصم من الخصم وأضف للمجيب
+      const opponent = answeringTeam === 0 ? 1 : 0;
+      gameState.scores[opponent] = Math.max(0, gameState.scores[opponent] - pts);
+      gameState.scores[answeringTeam] += pts;
+    } else {
+      // إضافة عادية
+      gameState.scores[answeringTeam] += pts;
+    }
+
+    // تعليم السؤال كمُلعب
+    markQuestionPlayed(true);
+    closeResultAndReturn();
+  }
+
+  /* ================================================
+     ٢١. تعليم السؤال كمُلعب وحفظه في Local Storage
+  ================================================ */
+  function markQuestionPlayed(answered) {
+    const qid = gameState.currentQuestion.id;
+
+    // أضفه لمجموعة هذه الجلسة
+    gameState.playedThisSession.add(qid);
+
+    // أضفه للمجموعة الكلية (كل الجلسات)
+    gameState.playedAllTime.add(qid);
+
+    // احفظ في المتصفح
+    localStorage.setItem('quiz_played_ids', JSON.stringify([...gameState.playedAllTime]));
+
+    // تعليم الزر كمُنتهٍ في اللوحة
+    if (gameState.currentBtn) {
+      gameState.currentBtn.classList.add('played');
+      gameState.currentBtn.textContent = '✓';
+      gameState.currentBtn.disabled = true;
+    }
+  }
+
+  /* ================================================
+     ٢٢. إغلاق نافذة النتيجة والعودة للوحة اللعب
+  ================================================ */
+  function closeResultAndReturn() {
+    // إعادة تعيين المساعدات إذا كانت الإجابة خاطئة (لا أحد)
+    // ملاحظة: في النظام الحالي المساعدات تُستهلك سواء صح أم غلط (حسب المواصفات)
+
+    document.getElementById('popup-result').classList.remove('active');
+
+    // تبديل الدور
+    gameState.currentTurn = gameState.currentTurn === 0 ? 1 : 0;
+
+    // تحديث الواجهة
+    updateScoreboard();
+
+    // العودة للوحة اللعب
+    showScreen('screen-board');
+
+    // فحص إذا انتهت كل الأسئلة
+    checkIfGameOver();
+  }
+
+  /* ================================================
+     ٢٣. فحص إذا انتهت كل الأسئلة
+  ================================================ */
+  function checkIfGameOver() {
+    const allBtns = document.querySelectorAll('.q-btn');
+    const allPlayed = Array.from(allBtns).every(btn =>
+      btn.classList.contains('played') || btn.disabled
+    );
+
+    if (allPlayed) {
+      setTimeout(showWinnerScreen, 500);
+    }
+  }
+
+  /* ================================================
+     ٢٤. أزرار التحكم في لوحة اللعب
+  ================================================ */
+
+  /* زر العودة للإعداد */
+  document.getElementById('btn-back-to-setup').addEventListener('click', () => {
+    if (confirm('هل تريد إنهاء الجلسة والعودة للبداية؟')) {
+      resetSetup();
+      showScreen('screen-setup');
+    }
+  });
+
+  /* زر إنهاء اللعبة مبكراً */
+  document.getElementById('btn-end-game').addEventListener('click', () => {
+    if (confirm('هل تريد إنهاء اللعبة الآن وإعلان الفائز؟')) {
+      showWinnerScreen();
+    }
+  });
+
+  /* ================================================
+     ٢٥. عرض شاشة الفائز
+  ================================================ */
+  function showWinnerScreen() {
+    const s1 = gameState.scores[0];
+    const s2 = gameState.scores[1];
+    const n1 = gameState.teamNames[0];
+    const n2 = gameState.teamNames[1];
+
+    const screen = document.getElementById('screen-winner');
+
+    if (s1 > s2) {
+      // الفريق الأول فاز
+      screen.className = 'screen winner-bg-team1';
+      document.getElementById('winner-trophy').textContent = '🏆';
+      document.getElementById('winner-label').textContent = 'الفائز';
+      document.getElementById('winner-name-display').textContent = n1;
+      document.getElementById('winner-score-display').textContent = `${s1.toLocaleString('ar-EG')} نقطة`;
+      document.getElementById('loser-name-display').textContent = n2;
+      document.getElementById('loser-score-display').textContent = `${s2.toLocaleString('ar-EG')} نقطة`;
+      document.getElementById('loser-section').style.display = 'flex';
+    } else if (s2 > s1) {
+      // الفريق الثاني فاز
+      screen.className = 'screen winner-bg-team2';
+      document.getElementById('winner-trophy').textContent = '🏆';
+      document.getElementById('winner-label').textContent = 'الفائز';
+      document.getElementById('winner-name-display').textContent = n2;
+      document.getElementById('winner-score-display').textContent = `${s2.toLocaleString('ar-EG')} نقطة`;
+      document.getElementById('loser-name-display').textContent = n1;
+      document.getElementById('loser-score-display').textContent = `${s1.toLocaleString('ar-EG')} نقطة`;
+      document.getElementById('loser-section').style.display = 'flex';
+    } else {
+      // تعادل
+      screen.className = 'screen winner-bg-tie';
+      document.getElementById('winner-trophy').textContent = '🤝';
+      document.getElementById('winner-label').textContent = 'تعادل!';
+      document.getElementById('winner-name-display').textContent = `${n1} و ${n2}`;
+      document.getElementById('winner-score-display').textContent = `${s1.toLocaleString('ar-EG')} نقطة لكل فريق`;
+      document.getElementById('loser-section').style.display = 'none';
+    }
+
+    // إطلاق القصاصات الاحتفالية
+    launchConfetti();
+
+    showScreen('screen-winner');
+  }
+
+  /* ================================================
+     ٢٦. القصاصات الاحتفالية (Confetti)
+  ================================================ */
+  function launchConfetti() {
+    const container = document.getElementById('confetti-container');
+    container.innerHTML = '';
+
+    const colors = ['#F97316', '#22C55E', '#3B82F6', '#EF4444', '#8B5CF6', '#FBBF24'];
+
+    // ننشئ 80 قصاصة
+    for (let i = 0; i < 80; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+
+      // موضع عشوائي أفقي
+      piece.style.left = Math.random() * 100 + 'vw';
+
+      // لون عشوائي
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+      // تأخير وسرعة سقوط مختلفة
+      const duration = 2 + Math.random() * 3;
+      const delay    = Math.random() * 2;
+      piece.style.animation = `confettiFall ${duration}s ${delay}s ease-out forwards`;
+
+      // حجم وشكل مختلف
+      const size = 6 + Math.random() * 10;
+      piece.style.width  = size + 'px';
+      piece.style.height = size + 'px';
+      piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+
+      container.appendChild(piece);
+    }
+  }
+
+  /* ================================================
+     ٢٧. زر لعبة جديدة
+  ================================================ */
+  document.getElementById('btn-new-game').addEventListener('click', () => {
+    resetSetup();
+    showScreen('screen-setup');
+  });
+
+  /* ================================================
+     ٢٨. إعادة تعيين الإعداد
+  ================================================ */
+  function resetSetup() {
+    // إعادة تعيين الفئات
+    gameState.selectedCategories = [];
+    document.getElementById('selected-count').textContent = '0';
+    document.getElementById('btn-open-popup').style.display = 'none';
+
+    // إلغاء تحديد كل البطاقات
+    document.querySelectorAll('.cat-card').forEach(c => {
+      c.classList.remove('selected', 'disabled');
+    });
+
+    // مسح حقول الأسماء
+    document.getElementById('input-team1').value = '';
+    document.getElementById('input-team2').value = '';
+  }
+
+  /* ================================================
+     ٢٩. التنقل بين الشاشات
+  ================================================ */
+  function showScreen(screenId) {
+    // إخفاء كل الشاشات
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.remove('active');
+    });
+
+    // إظهار الشاشة المطلوبة
+    const target = document.getElementById(screenId);
+    target.classList.add('active');
+  }
+
+  /* ================================================
+     ٣٠. تسجيل Service Worker للـ PWA
+     يتيح تشغيل اللعبة بدون إنترنت
+  ================================================ */
+  if ('serviceWorker' in navigator) {
+    // نسجل service worker مضمّن عبر blob
+    const swCode = `
+      // Service Worker - يخزن الملفات للتشغيل بدون إنترنت
+      const CACHE_NAME = 'quiz-game-v1';
+
+      self.addEventListener('install', (e) => {
+        e.waitUntil(
+          caches.open(CACHE_NAME).then(cache => {
+            // نخزن الصفحة الرئيسية
+            return cache.addAll(['/']);
+          }).catch(() => {})
+        );
+        self.skipWaiting();
+      });
+
+      self.addEventListener('fetch', (e) => {
+        e.respondWith(
+          caches.match(e.request).then(cached => {
+            return cached || fetch(e.request).catch(() => cached);
+          })
+        );
+      });
+    `;
+
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swURL  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swURL).catch(() => {});
+  }
+
+  /* ================================================
+     ٣١. تشغيل اللعبة عند تحميل الصفحة
+  ================================================ */
+  initializeGame();
+
+  </script>
+</body>
+</html>
