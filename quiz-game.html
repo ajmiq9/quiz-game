@@ -1122,115 +1122,12 @@
   const SHEETS_CONFIG = {
     // عدّل هذا الرابط بعد ما تسوي الجدول في Google Sheets
     // الصيغة: https://docs.google.com/spreadsheets/d/SHEET_ID/gviz/tq?tqx=out:json
-    url: 'YOUR_GOOGLE_SHEET_URL_HERE',
+    url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtv1NlvMpJ4MnsQKlEVbJLk99K733XjbbbVlspy466428XqCReMPxB6cpvTMVaG0GlGMhC5upyGr_C/pub?gid=0&single=true&output=csv',
     // هل البيانات محملة؟ (false = نستخدم بيانات تجريبية)
-    loaded: false,
+    loaded: true,
   };
 
-  /* ================================================
-     ٣. بيانات تجريبية (تُستخدم حتى تربط Google Sheets)
-     الأعمدة في جداول جوجل يجب أن تكون:
-     id | category | difficulty | points | question | answer | option_b | option_c | option_d | barcode_text | explanation
-  ================================================ */
-  const DEMO_QUESTIONS = [
-    // ─── معلومات عامة ───
-    { id:'Q001', category:'general', difficulty:'easy',   points:200, question:'ما هي أكبر قارة في العالم؟',                answer:'آسيا',         option_b:'أفريقيا',   option_c:'أوروبا',    option_d:'أمريكا',   barcode_text:'', explanation:'آسيا تمثل حوالي 30% من مساحة اليابسة.' },
-    { id:'Q002', category:'general', difficulty:'easy',   points:200, question:'كم عدد أيام السنة الكبيسة؟',              answer:'366 يوم',      option_b:'365 يوم',   option_c:'364 يوم',   option_d:'367 يوم',  barcode_text:'', explanation:'' },
-    { id:'Q003', category:'general', difficulty:'medium', points:400, question:'ما هي العملة الرسمية لليابان؟',           answer:'الين',         option_b:'الوون',     option_c:'اليوان',    option_d:'الدولار',  barcode_text:'', explanation:'' },
-    { id:'Q004', category:'general', difficulty:'medium', points:400, question:'من اخترع التلفون؟',                        answer:'ألكسندر بيل',  option_b:'إديسون',    option_c:'نيوتن',     option_d:'داروين',   barcode_text:'', explanation:'' },
-    { id:'Q005', category:'general', difficulty:'hard',   points:600, question:'ما هي أصغر دولة في العالم من حيث المساحة؟', answer:'الفاتيكان',  option_b:'موناكو',    option_c:'سان مارينو',option_d:'ليختنشتاين',barcode_text:'', explanation:'' },
-    { id:'Q006', category:'general', difficulty:'hard',   points:600, question:'في أي عام اخترع رايت الطائرة؟',           answer:'١٩٠٣',         option_b:'١٨٩٩',     option_c:'١٩١٠',     option_d:'١٨٩٥',    barcode_text:'', explanation:'' },
-
-    // ─── عالم الحيوان ───
-    { id:'Q007', category:'animals', difficulty:'easy',   points:200, question:'ما هو أسرع حيوان بري في العالم؟',         answer:'الفهد',       option_b:'الأسد',     option_c:'الحصان',    option_d:'النمر',    barcode_text:'', explanation:'' },
-    { id:'Q008', category:'animals', difficulty:'easy',   points:200, question:'كم عدد أرجل العنكبوت؟',                    answer:'8',            option_b:'6',          option_c:'10',        option_d:'12',       barcode_text:'', explanation:'' },
-    { id:'Q009', category:'animals', difficulty:'medium', points:400, question:'ما هو الحيوان الثديي الوحيد القادر على الطيران؟', answer:'الخفاش', option_b:'الغدة',    option_c:'القنفذ',    option_d:'السنجاب',  barcode_text:'', explanation:'' },
-    { id:'Q010', category:'animals', difficulty:'medium', points:400, question:'كم مدة حمل الفيلة؟',                        answer:'22 شهراً',     option_b:'12 شهراً',  option_c:'18 شهراً',  option_d:'9 أشهر',   barcode_text:'', explanation:'' },
-    { id:'Q011', category:'animals', difficulty:'hard',   points:600, question:'ما اسم الفصيلة التي ينتمي إليها الدلفين؟',  answer:'الدلفينيات', option_b:'الحيتانيات',option_c:'الفقمات',   option_d:'الكيتاسيا',barcode_text:'', explanation:'' },
-    { id:'Q012', category:'animals', difficulty:'hard',   points:600, question:'أي حيوان يملك بصمة أصابع مشابهة للإنسان؟', answer:'الكوالا',     option_b:'القرد',    option_c:'الدب',      option_d:'الكنغر',   barcode_text:'', explanation:'' },
-
-    // ─── أدب ولغات ───
-    { id:'Q013', category:'literature', difficulty:'easy',   points:200, question:'ما معنى كلمة "أريج"؟',               answer:'رائحة طيبة',   option_b:'ضوء خافت',  option_c:'صوت خفيف',  option_d:'ماء جارٍ', barcode_text:'', explanation:'' },
-    { id:'Q014', category:'literature', difficulty:'easy',   points:200, question:'من كتب "أيام" في الأدب العربي؟',     answer:'طه حسين',      option_b:'العقاد',    option_c:'المنفلوطي', option_d:'شوقي',     barcode_text:'', explanation:'' },
-    { id:'Q015', category:'literature', difficulty:'medium', points:400, question:'ما معنى كلمة "بَلَغَ" في الفصحى؟',   answer:'وصل وأدرك',    option_b:'كذب',       option_c:'طلب',       option_d:'رفض',      barcode_text:'', explanation:'' },
-    { id:'Q016', category:'literature', difficulty:'medium', points:400, question:'من هو شاعر النيل؟',                   answer:'حافظ إبراهيم', option_b:'أحمد شوقي', option_c:'المتنبي',   option_d:'نزار قباني',barcode_text:'', explanation:'' },
-    { id:'Q017', category:'literature', difficulty:'hard',   points:600, question:'من ألّف كتاب "الكامل في التاريخ"؟',  answer:'ابن الأثير',   option_b:'الطبري',    option_c:'ابن خلدون', option_d:'المسعودي', barcode_text:'', explanation:'' },
-    { id:'Q018', category:'literature', difficulty:'hard',   points:600, question:'ما اسم ديوان المتنبي الأكثر شهرة؟',  answer:'ديوان المتنبي',option_b:'المعلقات',  option_c:'الحماسة',   option_d:'الأغاني',  barcode_text:'', explanation:'' },
-
-    // ─── علوم ───
-    { id:'Q019', category:'science', difficulty:'easy',   points:200, question:'ما هو الكوكب الأحمر؟',                   answer:'المريخ',       option_b:'المشتري',   option_c:'زحل',       option_d:'الزهرة',   barcode_text:'', explanation:'' },
-    { id:'Q020', category:'science', difficulty:'easy',   points:200, question:'ما هو أكثر العناصر توفراً في الغلاف الجوي؟', answer:'النيتروجين', option_b:'الأكسجين', option_c:'ثاني أكسيد الكربون', option_d:'الهيدروجين', barcode_text:'', explanation:'' },
-    { id:'Q021', category:'science', difficulty:'medium', points:400, question:'ما هو الرمز الكيميائي للذهب؟',           answer:'Au',           option_b:'Go',         option_c:'Gd',        option_d:'Ag',       barcode_text:'', explanation:'مشتق من الكلمة اللاتينية Aurum.' },
-    { id:'Q022', category:'science', difficulty:'medium', points:400, question:'كم يبلغ الوزن الذري للكربون؟',           answer:'12',           option_b:'6',          option_c:'14',        option_d:'8',        barcode_text:'', explanation:'' },
-    { id:'Q023', category:'science', difficulty:'hard',   points:600, question:'ما اسم المجرة التي تسكنها الأرض؟',       answer:'درب التبانة',  option_b:'أندروميدا', option_c:'المثلث',    option_d:'الدوامة',  barcode_text:'', explanation:'' },
-    { id:'Q024', category:'science', difficulty:'hard',   points:600, question:'في أي عام اكتُشف الثقب الأسود؟',         answer:'١٩١٦ (نظرياً)',option_b:'١٩٥٠',    option_c:'٢٠٠٠',     option_d:'١٨٨٨',    barcode_text:'', explanation:'' },
-
-    // ─── رياضة ───
-    { id:'Q025', category:'sports', difficulty:'easy',   points:200, question:'كم عدد لاعبي كرة القدم في الملعب لكل فريق؟', answer:'11',         option_b:'10',        option_c:'12',        option_d:'9',        barcode_text:'', explanation:'' },
-    { id:'Q026', category:'sports', difficulty:'easy',   points:200, question:'أين أُقيمت كأس العالم 2022؟',              answer:'قطر',          option_b:'روسيا',     option_c:'البرازيل',  option_d:'ألمانيا',  barcode_text:'', explanation:'' },
-    { id:'Q027', category:'sports', difficulty:'medium', points:400, question:'من فاز بكأس العالم 2018 في روسيا؟',        answer:'فرنسا',        option_b:'كرواتيا',   option_c:'البرازيل',  option_d:'ألمانيا',  barcode_text:'', explanation:'' },
-    { id:'Q028', category:'sports', difficulty:'medium', points:400, question:'كم عدد لاعبي كرة السلة في الملعب لكل فريق؟', answer:'5',          option_b:'6',          option_c:'7',         option_d:'4',        barcode_text:'', explanation:'' },
-    { id:'Q029', category:'sports', difficulty:'hard',   points:600, question:'من سجّل هدف المرمى من النصف في تاريخ كأس العالم؟', answer:'مالدوناودو عام ٢٠١٤', option_b:'بيكهام', option_c:'رونالدو', option_d:'ميسي', barcode_text:'', explanation:'' },
-    { id:'Q030', category:'sports', difficulty:'hard',   points:600, question:'في أي عام أُسّس نادي ريال مدريد؟',        answer:'١٩٠٢',         option_b:'١٨٩٧',     option_c:'١٩١٠',     option_d:'١٨٨٩',    barcode_text:'', explanation:'' },
-
-    // ─── عالم السيارات ───
-    { id:'Q031', category:'cars', difficulty:'easy',   points:200, question:'ما جنسية شركة تويوتا؟',                       answer:'يابانية',      option_b:'كورية',     option_c:'أمريكية',   option_d:'ألمانية',  barcode_text:'', explanation:'' },
-    { id:'Q032', category:'cars', difficulty:'easy',   points:200, question:'ماذا تعني BMW اختصاراً؟',                    answer:'Bayerische Motoren Werke', option_b:'Best Motor Works', option_c:'British Motor World', option_d:'Bavarian Machine Works', barcode_text:'', explanation:'' },
-    { id:'Q033', category:'cars', difficulty:'medium', points:400, question:'أي شركة سيارات تنتج موديل "Mustang"؟',       answer:'فورد',         option_b:'شيفروليه', option_c:'دودج',       option_d:'كرايسلر',  barcode_text:'', explanation:'' },
-    { id:'Q034', category:'cars', difficulty:'medium', points:400, question:'ما أسرع سيارة إنتاجية في العالم حتى ٢٠٢٣؟', answer:'بوغاتي شيرون',option_b:'كونيغسيغ', option_c:'لامبورغيني', option_d:'كوينتيسيك', barcode_text:'', explanation:'' },
-    { id:'Q035', category:'cars', difficulty:'hard',   points:600, question:'في أي عام أُسّست شركة تويوتا؟',              answer:'١٩٣٧',         option_b:'١٩٢٥',     option_c:'١٩٤٥',     option_d:'١٩٥٠',    barcode_text:'', explanation:'' },
-    { id:'Q036', category:'cars', difficulty:'hard',   points:600, question:'ما نوع محرك موديل تسلا موديل S؟',            answer:'كهربائي بالكامل', option_b:'هجين', option_c:'ديزل',       option_d:'هيدروجين', barcode_text:'', explanation:'' },
-
-    // ─── ألعاب فيديو ───
-    { id:'Q037', category:'games', difficulty:'easy',   points:200, question:'ما اسم الشركة المنتجة للبلايستيشن؟',         answer:'سوني',         option_b:'مايكروسوفت',option_c:'نينتندو',   option_d:'سيغا',     barcode_text:'', explanation:'' },
-    { id:'Q038', category:'games', difficulty:'easy',   points:200, question:'ما اسم الشخصية الرئيسية في لعبة Zelda؟',    answer:'لينك',         option_b:'زيلدا',     option_c:'غانون',     option_d:'بوبو',     barcode_text:'', explanation:'' },
-    { id:'Q039', category:'games', difficulty:'medium', points:400, question:'في أي عام صدرت لعبة Minecraft؟',             answer:'٢٠١١',         option_b:'٢٠٠٨',     option_c:'٢٠١٣',     option_d:'٢٠٠٩',    barcode_text:'', explanation:'' },
-    { id:'Q040', category:'games', difficulty:'medium', points:400, question:'ما اسم الاستوديو المطور للعبة GTA V؟',       answer:'Rockstar Games',option_b:'EA Sports', option_c:'Ubisoft',   option_d:'Activision',barcode_text:'', explanation:'' },
-    { id:'Q041', category:'games', difficulty:'hard',   points:600, question:'ما أول لعبة فيديو تجارية في التاريخ؟',      answer:'Pong',         option_b:'Space Invaders',option_c:'Pac-Man',option_d:'Tetris',   barcode_text:'', explanation:'' },
-    { id:'Q042', category:'games', difficulty:'hard',   points:600, question:'من مؤسس شركة Nintendo؟',                    answer:'فوساجيرو ياماوتشي', option_b:'هيروشي ياماوتشي', option_c:'شيغيرو مياموتو', option_d:'ساتورو إيواتا', barcode_text:'', explanation:'' },
-
-    // ─── أمثال وألغاز ───
-    { id:'Q043', category:'proverbs', difficulty:'easy',   points:200, question:'كمّل المثل: "اللي ما يعرف الصقر..."',    answer:'"يشويه"',      option_b:'"يبيعه"',   option_c:'"يطيره"',   option_d:'"يأكله"',  barcode_text:'', explanation:'مثل كويتي شهير.' },
-    { id:'Q044', category:'proverbs', difficulty:'easy',   points:200, question:'كمّل المثل: "العين بصيرة..."',           answer:'"واليد قصيرة"',option_b:'"والقلب حائر"',option_c:'"والنفس صابرة"',option_d:'"والأمل كبير"',barcode_text:'', explanation:'' },
-    { id:'Q045', category:'proverbs', difficulty:'medium', points:400, question:'اللي أربعة ومو قادر، وواحد يرفعه - ما هو؟', answer:'الغطاء',    option_b:'الباب',     option_c:'الطاولة',   option_d:'الكرسي',   barcode_text:'', explanation:'لغز شعبي: أربعة أرجل لكرسي لكن لا يرفعه إلا يد واحدة. الإجابة الصحيحة هي الغطاء (الغطاء بالأربعة أصابع).' },
-    { id:'Q046', category:'proverbs', difficulty:'medium', points:400, question:'كمّل المثل: "صديق في الضيق..."',         answer:'"صديق حقيقي"', option_b:'"نعمة عظيمة"',option_c:'"خير من ألف"',option_d:'"يساوي الذهب"',barcode_text:'', explanation:'' },
-    { id:'Q047', category:'proverbs', difficulty:'hard',   points:600, question:'ما معنى المثل: "خذ الحكمة من أفواه المجانين"؟', answer:'الحكمة لا مصدر لها', option_b:'المجانين حكماء', option_c:'استمع للجميع', option_d:'لا تثق بعاقل', barcode_text:'', explanation:'' },
-    { id:'Q048', category:'proverbs', difficulty:'hard',   points:600, question:'من أصل أي لغة جاء مثل "الوقت من ذهب"؟', answer:'يوناني قديم',  option_b:'لاتيني',    option_c:'فارسي',     option_d:'عربي',     barcode_text:'', explanation:'' },
-
-    // ─── معلومات إسلامية ───
-    { id:'Q049', category:'islamic', difficulty:'easy',   points:200, question:'كم عدد أركان الإسلام؟',                   answer:'5',            option_b:'6',          option_c:'4',         option_d:'7',        barcode_text:'', explanation:'' },
-    { id:'Q050', category:'islamic', difficulty:'easy',   points:200, question:'ما اسم أول سورة في القرآن الكريم؟',       answer:'الفاتحة',      option_b:'البقرة',    option_c:'الناس',     option_d:'الإخلاص', barcode_text:'', explanation:'' },
-    { id:'Q051', category:'islamic', difficulty:'medium', points:400, question:'في أي شهر نزل القرآن الكريم؟',            answer:'رمضان',        option_b:'محرم',       option_c:'شعبان',     option_d:'ذو الحجة', barcode_text:'', explanation:'' },
-    { id:'Q052', category:'islamic', difficulty:'medium', points:400, question:'ما اسم أول مسجد في الإسلام؟',              answer:'مسجد قباء',    option_b:'المسجد الحرام',option_c:'المسجد النبوي',option_d:'المسجد الأقصى',barcode_text:'', explanation:'' },
-    { id:'Q053', category:'islamic', difficulty:'hard',   points:600, question:'كم عدد غزوات النبي ﷺ؟',                  answer:'27 غزوة',      option_b:'20 غزوة',   option_c:'30 غزوة',   option_d:'15 غزوة',  barcode_text:'', explanation:'' },
-    { id:'Q054', category:'islamic', difficulty:'hard',   points:600, question:'ما اسم الصحابي الذي جمع القرآن الكريم في عهده؟', answer:'عثمان بن عفان', option_b:'أبو بكر الصديق', option_c:'عمر بن الخطاب', option_d:'علي بن أبي طالب', barcode_text:'', explanation:'' },
-
-    // ─── جغرافيا ───
-    { id:'Q055', category:'geography', difficulty:'easy',   points:200, question:'ما عاصمة فرنسا؟',                       answer:'باريس',        option_b:'لندن',      option_c:'برلين',     option_d:'مدريد',    barcode_text:'', explanation:'' },
-    { id:'Q056', category:'geography', difficulty:'easy',   points:200, question:'ما أطول نهر في العالم؟',                answer:'النيل',        option_b:'الأمازون',  option_c:'المسيسيبي', option_d:'اليانغتسي', barcode_text:'', explanation:'' },
-    { id:'Q057', category:'geography', difficulty:'medium', points:400, question:'ما عاصمة أستراليا؟',                    answer:'كانبيرا',      option_b:'سيدني',     option_c:'ملبورن',    option_d:'بريسبان',  barcode_text:'', explanation:'كثير يخطئ ويقول سيدني!' },
-    { id:'Q058', category:'geography', difficulty:'medium', points:400, question:'ما أكبر دولة في العالم مساحةً؟',        answer:'روسيا',        option_b:'الصين',    option_c:'الولايات المتحدة',option_d:'كندا',  barcode_text:'', explanation:'' },
-    { id:'Q059', category:'geography', difficulty:'hard',   points:600, question:'ما اسم أصغر دولة في قارة أمريكا الجنوبية؟', answer:'سورينام',   option_b:'أوروغواي',  option_c:'غيانا',     option_d:'باراغواي', barcode_text:'', explanation:'' },
-    { id:'Q060', category:'geography', difficulty:'hard',   points:600, question:'عبر كم دولة يمر نهر الأمازون؟',         answer:'9 دول',        option_b:'5 دول',     option_c:'7 دول',     option_d:'12 دولة',  barcode_text:'', explanation:'' },
-
-    // ─── تاريخ وأحداث ───
-    { id:'Q061', category:'history', difficulty:'easy',   points:200, question:'في أي عام غزا صدام حسين الكويت؟',         answer:'١٩٩٠',         option_b:'١٩٨٨',     option_c:'١٩٩٢',     option_d:'١٩٨٥',    barcode_text:'', explanation:'2 أغسطس 1990.' },
-    { id:'Q062', category:'history', difficulty:'easy',   points:200, question:'من هو أول رئيس للولايات المتحدة؟',        answer:'جورج واشنطن',  option_b:'أبراهام لينكولن',option_c:'توماس جيفرسون',option_d:'جون آدامز',barcode_text:'', explanation:'' },
-    { id:'Q063', category:'history', difficulty:'medium', points:400, question:'متى انتهت الحرب العالمية الثانية؟',        answer:'١٩٤٥',         option_b:'١٩٤٣',     option_c:'١٩٤٧',     option_d:'١٩٤١',    barcode_text:'', explanation:'' },
-    { id:'Q064', category:'history', difficulty:'medium', points:400, question:'من قائد معركة حطين؟',                      answer:'صلاح الدين الأيوبي', option_b:'عمر بن الخطاب', option_c:'خالد بن الوليد', option_d:'نور الدين زنكي', barcode_text:'', explanation:'' },
-    { id:'Q065', category:'history', difficulty:'hard',   points:600, question:'في أي عام سقطت القسطنطينية؟',             answer:'١٤٥٣',         option_b:'١٣٩٩',     option_c:'١٥٠٠',     option_d:'١٤٢٠',    barcode_text:'', explanation:'على يد محمد الفاتح.' },
-    { id:'Q066', category:'history', difficulty:'hard',   points:600, question:'ما اسم معاهدة السلام التي أنهت الحرب العالمية الأولى؟', answer:'معاهدة فرساي', option_b:'معاهدة باريس', option_c:'معاهدة لندن', option_d:'معاهدة برلين', barcode_text:'', explanation:'' },
-
-    // ─── ولا كلمة ───
-    { id:'Q067', category:'charades', difficulty:'easy',   points:200, question:'مثّل هذه الكلمة بدون صوت', answer:'نجار',         option_b:'', option_c:'', option_d:'', barcode_text:'نجار', explanation:'' },
-    { id:'Q068', category:'charades', difficulty:'easy',   points:200, question:'مثّل هذه الكلمة بدون صوت', answer:'طيارة',        option_b:'', option_c:'', option_d:'', barcode_text:'طيارة', explanation:'' },
-    { id:'Q069', category:'charades', difficulty:'medium', points:400, question:'مثّل هذه الجملة بدون صوت', answer:'يلعب كرة قدم', option_b:'', option_c:'', option_d:'', barcode_text:'يلعب كرة قدم', explanation:'' },
-    { id:'Q070', category:'charades', difficulty:'medium', points:400, question:'مثّل هذا الفيلم بدون صوت',  answer:'توباك',        option_b:'', option_c:'', option_d:'', barcode_text:'فيلم توباك', explanation:'' },
-    { id:'Q071', category:'charades', difficulty:'hard',   points:600, question:'مثّل هذا المسلسل بدون صوت', answer:'باب الحارة',   option_b:'', option_c:'', option_d:'', barcode_text:'مسلسل باب الحارة', explanation:'' },
-    { id:'Q072', category:'charades', difficulty:'hard',   points:600, question:'مثّل هذه المهنة بدون صوت',  answer:'طبيب أسنان',   option_b:'', option_c:'', option_d:'', barcode_text:'طبيب أسنان', explanation:'' },
-  ];
-
-  /* ================================================
+  /*  ================================================
      ٤. حالة اللعبة (State) - كل بيانات الجلسة هنا
   ================================================ */
   let gameState = {
@@ -1277,7 +1174,59 @@
   /* ================================================
      ٥. تحميل الأسئلة من Local Storage و Google Sheets
   ================================================ */
-  function initializeGame() {
+
+  // دالة تحليل سطر CSV تتعامل مع الفواصل داخل علامات التنصيص
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') {
+        inQuotes = !inQuotes;
+      } else if (line[i] === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += line[i];
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  // دالة جلب الأسئلة من Google Sheets
+  async function fetchQuestionsFromSheets() {
+    try {
+      const response = await fetch(SHEETS_CONFIG.url);
+      const csvText = await response.text();
+      const lines = csvText.trim().split('\n');
+      const questions = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        if (values.length < 2) continue;
+        questions.push({
+          id:           values[0]?.trim(),
+          category:     values[1]?.trim(),
+          difficulty:   values[2]?.trim(),
+          points:       parseInt(values[3]) || 200,
+          question:     values[4]?.trim(),
+          answer:       values[5]?.trim(),
+          option_b:     values[6]?.trim(),
+          option_c:     values[7]?.trim(),
+          option_d:     values[8]?.trim(),
+          barcode_text: values[9]?.trim(),
+          explanation:  values[10]?.trim(),
+        });
+      }
+      return questions;
+    } catch (error) {
+      console.error('خطأ في تحميل الأسئلة:', error);
+      return [];
+    }
+  }
+
+  // الدالة الرئيسية لتشغيل اللعبة
+  async function initializeGame() {
     // تحميل الأسئلة التي سبق لعبها من المتصفح
     const stored = localStorage.getItem('quiz_played_ids');
     if (stored) {
@@ -1289,16 +1238,20 @@
       }
     }
 
-    // نستخدم البيانات التجريبية مباشرة
-    // عندما تربط Google Sheets، غيّر هذا السطر لاستدعاء fetchQuestionsFromSheets()
-    gameState.allQuestions = DEMO_QUESTIONS;
+    // تحميل الأسئلة من Sheets أو التجريبية
+    if (SHEETS_CONFIG.loaded) {
+      gameState.allQuestions = await fetchQuestionsFromSheets();
+    } else {
+      gameState.allQuestions = DEMO_QUESTIONS;
+    }
+
     console.log(`✅ محُمّل ${gameState.allQuestions.length} سؤال`);
 
     // بناء شبكة الفئات
     buildCategoriesGrid();
   }
 
-  /* ================================================
+  /*  ================================================
      ٦. بناء شبكة الفئات في شاشة الإعداد
   ================================================ */
   function buildCategoriesGrid() {
@@ -1648,56 +1601,35 @@
     }, 1000);
   }
 
-  /* ================================================
-     ١٦. رسم QR Code بسيط باستخدام Canvas
-     (بدون مكتبة خارجية - نرسم النص كبديل بصري)
+  /*  ================================================
+     ١٦. توليد QR Code حقيقي باستخدام API خارجي
   ================================================ */
   function drawQRCode(text) {
-    const canvas = document.getElementById('qrCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // خلفية بيضاء
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 150, 150);
-
-    // إطار أسود
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(5, 5, 140, 140);
-
-    // نرسم مربعات عشوائية تشبه QR (بسيطة)
-    ctx.fillStyle = '#000000';
-    const seed = text.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    const size = 8;
-    const cols = 15;
-    for (let row = 0; row < cols; row++) {
-      for (let col = 0; col < cols; col++) {
-        const val = (seed * (row + 1) * (col + 1) * 13) % 100;
-        if (val > 50) {
-          ctx.fillRect(10 + col * size, 10 + row * size, size - 1, size - 1);
-        }
-      }
+    const canvasContainer = document.getElementById('barcode-area');
+    
+    // إزالة الـ canvas القديم الوهمي واستبداله بصورة حقيقية
+    let imgEl = document.getElementById('qr-real-image');
+    if (!imgEl) {
+      imgEl = document.createElement('img');
+      imgEl.id = 'qr-real-image';
+      imgEl.style.borderRadius = '8px';
+      imgEl.style.width = '150px';
+      imgEl.style.height = '150px';
+      
+      // إدخال الصورة قبل النص التوضيحي
+      const hintText = document.getElementById('barcode-text-hint');
+      canvasContainer.insertBefore(imgEl, hintText);
+      
+      // إخفاء الـ canvas القديم
+      const oldCanvas = document.getElementById('qrCanvas');
+      if (oldCanvas) oldCanvas.style.display = 'none';
     }
 
-    // مربعات الزوايا (للواجهة فقط)
-    const qSize = 24;
-    ctx.fillStyle = '#000';
-    [[10,10],[106,10],[10,106]].forEach(([x,y]) => {
-      ctx.fillRect(x, y, qSize, qSize);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(x+4, y+4, qSize-8, qSize-8);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(x+8, y+8, qSize-16, qSize-16);
-    });
-
-    // كتابة النص تحت الـ QR
-    ctx.fillStyle = '#333';
-    ctx.font = 'bold 10px Cairo, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(text, 75, 148);
+    // استخدام API لتوليد باركود حقيقي للنص المطلوب
+    const encodedText = encodeURIComponent(text);
+    imgEl.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodedText}`;
   }
-
-  /* ================================================
+  /*   ================================================
      ١٧. أزرار المساعدات في شاشة السؤال
   ================================================ */
 
@@ -2069,8 +2001,12 @@
   /* ================================================
      ٣١. تشغيل اللعبة عند تحميل الصفحة
   ================================================ */
-  initializeGame();
-
+  initializeGame().catch(err => {
+    console.error('خطأ في تشغيل اللعبة:', err);
+    gameState.allQuestions = DEMO_QUESTIONS;
+    buildCategoriesGrid();
+  });
+  
   </script>
 </body>
 </html>
