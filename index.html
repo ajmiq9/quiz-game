@@ -1,106 +1,691 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0F172A" />
-  <!-- اسم التطبيق للـ PWA -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>مسابقة الفرق</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0F172A" />
+<title>مسابقة الفرق</title>
 
-  <!-- =============================================
-       PWA MANIFEST مضمّن داخل الصفحة
-  ============================================= -->
-  <script>
-    // نسجل الـ manifest مباشرة بدون ملف خارجي
-    const manifestData = {
-      name: "مسابقة الفرق",
-      short_name: "مسابقة",
-      start_url: ".",
-      display: "standalone",
-      background_color: "#0F172A",
-      theme_color: "#0F172A",
-      icons: [
-        { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>", sizes: "192x192", type: "image/svg+xml" }
-      ]
-    };
-    const blob = new Blob([JSON.stringify(manifestData)], { type: "application/json" });
-    const manifestURL = URL.createObjectURL(blob);
-    document.write(`<link rel="manifest" href="${manifestURL}">`);
-  </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
-  <!-- خط Cairo من Google Fonts - الخط الرسمي للعبة -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
 
-  <style>
-    /* ============================================
-       إعادة تهيئة أساسية وإعدادات عامة
-    ============================================ */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+<style>
+/* ============================================
+إعادة تهيئة أساسية وإعدادات عامة
+============================================ */
+*, *::before, *::after {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
 
-    :root {
-      /* ألوان الخلفية */
-      --bg-main: #0F172A;
-      --bg-card: #1E293B;
-      --bg-border: #334155;
+:root {
+--bg-main: #0F172A;
+--bg-card: #1E293B;
+--bg-border: #334155;
+--team1: #F97316;
+--team1-hover: #FB923C;
+--team2: #22C55E;
+--team2-hover: #4ADE80;
+--text-primary: #FFFFFF;
+--text-secondary: #CBD5E1;
+--btn-neutral: #334155;
+--radius: 18px;
+--transition: 0.15s ease;
+}
 
-      /* ألوان الفريق الأول - برتقالي */
-      --team1: #F97316;
-      --team1-hover: #FB923C;
-      --team1-glow: #FDBA74;
+html, body {
+height: 100%;
+overflow: hidden; 
+}
 
-      /* ألوان الفريق الثاني - أخضر */
-      --team2: #22C55E;
-      --team2-hover: #4ADE80;
-      --team2-glow: #86EFAC;
+body {
+font-family: 'Cairo', sans-serif;
+background: var(--bg-main);
+color: var(--text-primary);
+}
 
-      /* ألوان النصوص */
-      --text-primary: #FFFFFF;
-      --text-secondary: #CBD5E1;
+.screen {
+display: none;
+position: fixed;
+inset: 0;
+overflow-y: auto;
+padding: 2vh 2vw; /* مساحات متناسبة مع التلفزيون */
+animation: fadeSlideUp 0.25s ease forwards;
+}
 
-      /* ألوان الأزرار */
-      --btn-neutral: #334155;
-      --btn-done: #475569;
+.screen.active {
+display: flex;
+flex-direction: column;
+}
 
-      /* ألوان المساعدات */
-      --help-options: #3B82F6;
-      --help-double: #8B5CF6;
-      --help-steal: #EF4444;
+@keyframes fadeSlideUp {
+from { opacity: 0; transform: translateY(20px); }
+to { opacity: 1; transform: translateY(0); }
+}
 
-      /* خصائص الأزرار */
-      --radius: 18px;
-      --transition: 0.15s ease;
-    }
+.btn {
+font-family: 'Cairo', sans-serif;
+font-weight: 700;
+font-size: 1.5rem; /* تكبير خط الأزرار */
+border: none;
+cursor: pointer;
+border-radius: var(--radius);
+padding: 1.5vh 3vw;
+transition: all var(--transition);
+box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
 
-    html, body {
-      height: 100%;
-      overflow: hidden; /* نمنع السكرول لأن كل شاشة تملأ الصفحة */
-    }
+.btn:active { transform: scale(0.98); }
+.btn:hover { filter: brightness(1.1); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    body {
-      font-family: 'Cairo', sans-serif;
-      background: var(--bg-main);
-      color: var(--text-primary);
-    }
+.btn-primary { background: var(--team1); color: #fff; }
+.btn-secondary { background: var(--btn-neutral); color: var(--text-primary); }
+.btn-team1 { background: var(--team1); color: #fff; }
+.btn-team2 { background: var(--team2); color: #fff; }
+.btn-neutral { background: var(--btn-neutral); color: var(--text-primary); }
 
-    /* ============================================
-       نظام الشاشات - كل شاشة تأخذ 100% من المساحة
-    ============================================ */
-    .screen {
-      display: none; /* مخفية افتراضياً */
-      position: fixed;
-      inset: 0;
-      overflow-y: auto;
-      padding: 20px;
-      animation: fadeSlideUp 0.25s ease forwards;
-    }
+/* ============================================
+شاشة الإعداد
+============================================ */
+#screen-setup { align-items: center; gap: 3vh; }
 
+.setup-title {
+font-size: 5vh; /* تكبير العنوان */
+font-weight: 900;
+text-align: center;
+background: linear-gradient(135deg, var(--team1), var(--team2));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+margin-top: 2vh;
+}
+
+/* شبكة الفئات - 6 أعمدة للتلفزيون العريض */
+.categories-grid {
+display: grid;
+grid-template-columns: repeat(6, 1fr);
+gap: 1.5vw;
+width: 95vw;
+}
+
+.cat-card {
+background: var(--bg-card);
+border: 3px solid var(--bg-border);
+border-radius: var(--radius);
+padding: 3vh 1vw;
+text-align: center;
+cursor: pointer;
+transition: all var(--transition);
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 1vh;
+user-select: none;
+}
+
+.cat-card.selected {
+background: rgba(249, 115, 22, 0.15);
+border-color: var(--team1);
+}
+
+.cat-card.disabled { opacity: 0.35; pointer-events: none; }
+.cat-emoji { font-size: 5vh; }
+.cat-name { font-size: 2.2vh; font-weight: 700; color: var(--text-primary); }
+
+.selection-counter { font-size: 2.5vh; color: var(--text-secondary); }
+.selection-counter span { color: var(--team1); font-weight: 700; }
+
+.btn-start-setup {
+font-size: 3vh;
+padding: 2vh 5vw;
+background: linear-gradient(135deg, var(--team1), #EA580C);
+color: #fff;
+animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+0%, 100% { box-shadow: 0 4px 20px rgba(249,115,22,0.4); }
+50% { box-shadow: 0 4px 40px rgba(249,115,22,0.8); }
+}
+
+/* ============================================
+النوافذ المنبثقة للتلفزيون
+============================================ */
+.popup-overlay {
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.8);
+backdrop-filter: blur(8px);
+z-index: 100;
+align-items: center;
+justify-content: center;
+}
+
+.popup-overlay.active { display: flex; }
+
+.popup-box {
+background: var(--bg-card);
+border: 2px solid var(--bg-border);
+border-radius: 24px;
+padding: 4vh 3vw;
+width: 70vw; /* عرض ممتاز للتلفزيون */
+max-width: 800px;
+display: flex;
+flex-direction: column;
+gap: 3vh;
+}
+
+.popup-title { font-size: 4vh; text-align: center; }
+
+.input-group label { font-size: 2.5vh; font-weight: 700; }
+.input-group input {
+background: var(--bg-main);
+border: 2px solid var(--bg-border);
+border-radius: 12px;
+padding: 2vh;
+color: var(--text-primary);
+font-size: 3vh;
+text-align: right;
+}
+
+/* ============================================
+لوحة اللعب (Scoreboard ثابتة)
+============================================ */
+#screen-board { gap: 2vh; padding-top: 0; }
+
+.scoreboard {
+position: sticky; /* تثبيت في الأعلى */
+top: 0;
+z-index: 50;
+background: var(--bg-main);
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 2vw;
+width: 100%;
+padding: 2vh 0;
+border-bottom: 2px solid var(--bg-border);
+}
+
+.team-score-card {
+background: var(--bg-card);
+border: 3px solid var(--bg-border);
+border-radius: var(--radius);
+padding: 2vh 2vw;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 1vh;
+}
+
+.team-score-card.team1-active { border-color: var(--team1); box-shadow: 0 0 30px rgba(249,115,22,0.5); }
+.team-score-card.team2-active { border-color: var(--team2); box-shadow: 0 0 30px rgba(34,197,94,0.5); }
+
+.team-name { font-size: 3.5vh; font-weight: 900; }
+.team1-name { color: var(--team1); }
+.team2-name { color: var(--team2); }
+
+.team-points { font-size: 6vh; font-weight: 900; }
+
+.turn-indicator { text-align: center; font-size: 3vh; padding-top: 1vh; }
+.turn-indicator span { font-weight: 900; }
+
+/* شبكة أسئلة اللعب */
+.questions-grid {
+display: grid;
+grid-template-columns: repeat(6, 1fr);
+gap: 1.5vw;
+padding-bottom: 5vh;
+}
+
+.category-header {
+background: var(--bg-card);
+border: 2px solid var(--bg-border);
+border-radius: 12px;
+padding: 1vh;
+text-align: center;
+font-size: 2.2vh;
+font-weight: 700;
+display: flex;
+flex-direction: column;
+gap: 1vh;
+margin-bottom: 1vh;
+}
+
+.cat-header-emoji { font-size: 4vh; }
+
+.question-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5vw; }
+
+.q-btn {
+font-family: 'Cairo', sans-serif;
+font-weight: 900;
+font-size: 3.5vh;
+padding: 1.5vh 0;
+border: 2px solid #CBD5E1;
+border-radius: 12px;
+cursor: pointer;
+background: #F8FAFC;
+color: #0F172A;
+}
+
+.q-btn.played {
+background: #475569;
+color: #94A3B8;
+border-color: #334155;
+cursor: not-allowed;
+}
+
+/* ============================================
+شاشة السؤال والتايمر
+============================================ */
+#screen-question { align-items: center; justify-content: center; gap: 3vh; }
+
+.question-meta { text-align: center; font-size: 3vh; }
+.question-points-label { font-size: 4vh; font-weight: 900; color: var(--team1); }
+
+/* المؤقت */
+.timer-circle { position: relative; width: 20vh; height: 20vh; }
+.timer-circle svg { position: absolute; inset: 0; transform: rotate(-90deg); width: 100%; height: 100%; }
+.timer-bg-ring { fill: none; stroke: var(--bg-border); stroke-width: 8; }
+.timer-progress-ring { fill: none; stroke: var(--team1); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s ease; }
+.timer-number { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 7vh; font-weight: 900; }
+
+.timer-phase-2 .timer-progress-ring { stroke: #EF4444; }
+.timer-phase-2 .timer-number { color: #EF4444; }
+
+.question-text-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 90vw; }
+.question-text { font-size: 6vh; font-weight: 900; text-align: center; line-height: 1.6; }
+
+/* عرض الباركود بشكل كبير */
+.barcode-display {
+display: none;
+flex-direction: column;
+align-items: center;
+background: #fff;
+padding: 3vh;
+border-radius: 16px;
+margin-top: 2vh;
+}
+.barcode-display.visible { display: flex; }
+.barcode-display p { font-size: 3vh; font-weight: bold; color: #000; margin-bottom: 1vh; }
+
+.btn-done-main {
+padding: 2vh 6vw;
+font-size: 4vh;
+background: #10B981;
+color: #fff;
+border-radius: var(--radius);
+font-weight: 900;
+}
+
+/* نافذة النتيجة */
+.result-answer-text { font-size: 4vh; font-weight: 900; color: #10B981; margin: 2vh 0; }
+.result-buttons { display: flex; flex-direction: column; gap: 2vh; }
+
+/* ============================================
+شاشة الفائز
+============================================ */
+.winner-trophy { font-size: 15vh; }
+.winner-name { font-size: 8vh; font-weight: 900; }
+.winner-score { font-size: 6vh; }
+</style>
+</head>
+<body>
+
+<div id="screen-setup" class="screen active">
+<h1 class="setup-title">🏆 مسابقة الفرق</h1>
+<p class="selection-counter">اختر 6 فئات | تم اختيار <span id="selected-count">0</span></p>
+<div class="categories-grid" id="categories-grid"></div>
+<button class="btn btn-start-setup" id="btn-open-popup" style="display:none">ابدأ ▶</button>
+</div>
+
+<div class="popup-overlay" id="popup-names">
+<div class="popup-box">
+<h2 class="popup-title">⚔️ أسماء الفرق</h2>
+<div class="input-group">
+<label style="color: var(--team1)">🟠 الفريق الأول</label>
+<input type="text" id="input-team1" placeholder="الفريق الأول" />
+</div>
+<div class="input-group">
+<label style="color: var(--team2)">🟢 الفريق الثاني</label>
+<input type="text" id="input-team2" placeholder="الفريق الثاني" />
+</div>
+<button class="btn btn-team1" id="btn-play-now" style="margin-top: 2vh;">العب الآن 🎮</button>
+</div>
+</div>
+
+<div id="screen-board" class="screen">
+<div class="scoreboard">
+<div class="team-score-card" id="card-team1">
+<div class="team-name team1-name" id="display-team1-name">الفريق الأول</div>
+<div class="team-points" id="display-team1-score" style="color: var(--team1)">0</div>
+</div>
+<div class="team-score-card" id="card-team2">
+<div class="team-name team2-name" id="display-team2-name">الفريق الثاني</div>
+<div class="team-points" id="display-team2-score" style="color: var(--team2)">0</div>
+</div>
+</div>
+<div class="turn-indicator">دور: <span id="turn-label">-</span></div>
+<div class="questions-grid" id="questions-grid"></div>
+<div style="text-align: center;"><button class="btn" style="background:#DC2626; color:#fff;" id="btn-end-game">إنهاء اللعبة</button></div>
+</div>
+
+<div id="screen-question" class="screen">
+<div class="question-meta">
+<div id="q-category-label" style="font-weight:bold; color:var(--text-secondary)"></div>
+<div class="question-points-label" id="q-points-label"></div>
+</div>
+
+<div class="timer-container">
+<div class="timer-circle" id="timer-circle">
+<svg viewBox="0 0 90 90">
+<circle class="timer-bg-ring" cx="45" cy="45" r="38" />
+<circle class="timer-progress-ring" id="timer-ring" cx="45" cy="45" r="38" stroke-dasharray="238.76" stroke-dashoffset="0" />
+</svg>
+<div class="timer-number" id="timer-number">60</div>
+</div>
+</div>
+
+<div class="question-text-area">
+<div class="question-text" id="question-text-display"></div>
+</div>
+
+<div class="barcode-display" id="barcode-area">
+<p>📱 صور الباركود لتعرف الكلمة</p>
+<canvas id="qrCanvas"></canvas>
+</div>
+
+<button class="btn-done-main" id="btn-done">عرض الإجابة ✅</button>
+</div>
+
+<div class="popup-overlay result-popup" id="popup-result">
+<div class="popup-box">
+<h3 class="popup-title">الإجابة الصحيحة</h3>
+<div class="result-answer-text" id="result-correct-answer" style="text-align: center;"></div>
+<div class="result-buttons">
+<button class="btn btn-team1" id="result-btn-team1">أجاب الفريق الأول ✅</button>
+<button class="btn btn-team2" id="result-btn-team2">أجاب الفريق الثاني ✅</button>
+<button class="btn btn-neutral" id="result-btn-none">لم يجب أحد ❌</button>
+</div>
+</div>
+</div>
+
+<div id="screen-winner" class="screen">
+<div class="winner-trophy">🏆</div>
+<div class="winner-name" id="winner-name-display"></div>
+<div class="winner-score" id="winner-score-display"></div>
+<button class="btn" id="btn-new-game" style="background:#fff; color:#0F172A; margin-top:5vh;">لعبة جديدة</button>
+</div>
+
+<script>
+const ALL_CATEGORIES = [
+{ id: 'معلومات عامة', name: 'معلومات عامة', emoji: '🧠' },
+{ id: 'عالم الحيوان', name: 'عالم الحيوان', emoji: '🐪' },
+{ id: 'أدب ولغات', name: 'أدب ولغات', emoji: '📚' },
+{ id: 'العلوم والطبيعة', name: 'العلوم والطبيعة', emoji: '🧪' },
+{ id: 'الرياضة', name: 'رياضة', emoji: '⚽' },
+{ id: 'عالم السيارات', name: 'عالم السيارات', emoji: '🚗' },
+{ id: 'ألعاب فيديو', name: 'ألعاب فيديو', emoji: '🎮' },
+{ id: 'أمثال وألغاز', name: 'أمثال وألغاز', emoji: '🧩' },
+{ id: 'معلومات إسلامية', name: 'معلومات إسلامية', emoji: '🕌' },
+{ id: 'التاريخ والجغرافيا', name: 'التاريخ والجغرافيا', emoji: '🌍' },
+{ id: 'صحة ولياقة', name: 'صحة ولياقة', emoji: '💪' },
+{ id: 'ولا كلمة', name: 'ولا كلمة', emoji: '🎭' }
+];
+
+const SHEETS_CONFIG = {
+url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtv1NlvMpJ4MnsQKlEVbJLk99K733XjbbbVlspy466428XqCReMPxB6cpvTMVaG0GlGMhC5upyGr_C/pub?gid=0&single=true&output=csv',
+loaded: true,
+};
+
+let gameState = {
+selectedCategories: [],
+teamNames: ['الفريق الأول', 'الفريق الثاني'],
+scores: [0, 0],
+currentTurn: 0,
+currentQuestion: null,
+allQuestions: [],
+};
+
+// التنقل بين الشاشات
+function showScreen(screenId) {
+document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+document.getElementById(screenId).classList.add('active');
+}
+
+// قراءة CSV
+function parseCSVLine(line) {
+const result = [];
+let current = '';
+let inQuotes = false;
+for (let i = 0; i < line.length; i++) {
+if (line[i] === '"') { inQuotes = !inQuotes; } 
+else if (line[i] === ',' && !inQuotes) { result.push(current); current = ''; } 
+else { current += line[i]; }
+}
+result.push(current);
+return result;
+}
+
+// جلب الأسئلة
+async function fetchQuestions() {
+try {
+const response = await fetch(SHEETS_CONFIG.url);
+const text = await response.text();
+const lines = text.trim().split('\n');
+const qs = [];
+for (let i = 1; i < lines.length; i++) {
+const val = parseCSVLine(lines[i]);
+if (val.length < 5) continue;
+qs.push({
+id: val[0], category: val[1], difficulty: val[2], points: parseInt(val[3]),
+question: val[4], answer: val[5], barcode_text: val[9] || val[5] 
+});
+}
+return qs;
+} catch (e) {
+console.error(e); return [];
+}
+}
+
+// تهيئة اللعبة وبناء الفئات
+async function init() {
+gameState.allQuestions = await fetchQuestions();
+const grid = document.getElementById('categories-grid');
+ALL_CATEGORIES.forEach(cat => {
+const card = document.createElement('div');
+card.className = 'cat-card';
+card.innerHTML = `<span class="cat-emoji">${cat.emoji}</span><span class="cat-name">${cat.name}</span>`;
+card.onclick = () => {
+if (card.classList.contains('selected')) {
+card.classList.remove('selected');
+gameState.selectedCategories = gameState.selectedCategories.filter(id => id !== cat.id);
+} else if (gameState.selectedCategories.length < 6) {
+card.classList.add('selected');
+gameState.selectedCategories.push(cat.id);
+}
+document.getElementById('selected-count').textContent = gameState.selectedCategories.length;
+document.getElementById('btn-open-popup').style.display = gameState.selectedCategories.length === 6 ? 'block' : 'none';
+};
+grid.appendChild(card);
+});
+}
+
+// زر البدء يفتح النافذة
+document.getElementById('btn-open-popup').onclick = () => {
+document.getElementById('popup-names').classList.add('active');
+};
+
+// بدء اللعب ورسم الجدول
+document.getElementById('btn-play-now').onclick = () => {
+gameState.teamNames[0] = document.getElementById('input-team1').value || 'الفريق الأول';
+gameState.teamNames[1] = document.getElementById('input-team2').value || 'الفريق الثاني';
+document.getElementById('popup-names').classList.remove('active');
+buildBoard();
+showScreen('screen-board');
+};
+
+function buildBoard() {
+document.getElementById('display-team1-name').textContent = gameState.teamNames[0];
+document.getElementById('display-team2-name').textContent = gameState.teamNames[1];
+updateTurnUI();
+const grid = document.getElementById('questions-grid');
+grid.innerHTML = '';
+
+gameState.selectedCategories.forEach(catId => {
+const catInfo = ALL_CATEGORIES.find(c => c.id === catId);
+const col = document.createElement('div');
+col.innerHTML = `<div class="category-header"><span class="cat-header-emoji">${catInfo.emoji}</span>${catInfo.name}</div>`;
+[200, 400, 600].forEach(pts => {
+const diff = pts === 200 ? 'easy' : pts === 400 ? 'medium' : 'hard';
+const pool = gameState.allQuestions.filter(q => q.category === catId && q.difficulty === diff);
+const pair = document.createElement('div');
+pair.className = 'question-pair';
+for(let i=0; i<2; i++) {
+const btn = document.createElement('button');
+btn.className = 'q-btn';
+btn.textContent = pts;
+if(pool[i]) {
+btn.onclick = () => openQuestion(pool[i], btn);
+} else {
+btn.classList.add('played'); btn.textContent = '-';
+}
+pair.appendChild(btn);
+}
+col.appendChild(pair);
+});
+grid.appendChild(col);
+});
+}
+
+function updateTurnUI() {
+document.getElementById('display-team1-score').textContent = gameState.scores[0];
+document.getElementById('display-team2-score').textContent = gameState.scores[1];
+document.getElementById('turn-label').textContent = gameState.teamNames[gameState.currentTurn];
+document.getElementById('card-team1').classList.toggle('team1-active', gameState.currentTurn === 0);
+document.getElementById('card-team2').classList.toggle('team2-active', gameState.currentTurn === 1);
+}
+
+// ----------------------------------------------------
+// نظام المؤقت المرحلي (60 ثانية ثم 20 ثانية)
+// ----------------------------------------------------
+let timerInterval;
+let timeLeft = 60;
+let timerPhase = 1; // 1 = للفريق الأساسي (60 ثانية)، 2 = للفريق الخصم (20 ثانية)
+
+function startTimer() {
+clearInterval(timerInterval);
+timerPhase = 1;
+timeLeft = 60;
+const circle = document.getElementById('timer-circle');
+circle.classList.remove('timer-phase-2');
+updateTimerDisplay(60);
+
+timerInterval = setInterval(() => {
+timeLeft--;
+if (timeLeft <= 0) {
+if (timerPhase === 1) {
+// انتهى وقت الفريق الأول، يبدأ وقت الفريق الخصم
+timerPhase = 2;
+timeLeft = 20;
+circle.classList.add('timer-phase-2'); // يحول اللون للأحمر
+// تنبيه بتغير الدور
+document.getElementById('question-text-display').innerHTML += '<br><span style="color:#EF4444; font-size:4vh">انتهى الوقت! فرصة الفريق الآخر</span>';
+} else {
+// انتهى الوقت تماماً
+clearInterval(timerInterval);
+}
+}
+updateTimerDisplay(timerPhase === 1 ? 60 : 20);
+}, 1000);
+}
+
+function updateTimerDisplay(maxTime) {
+document.getElementById('timer-number').textContent = timeLeft;
+const ring = document.getElementById('timer-ring');
+const offset = 238.76 - (timeLeft / maxTime) * 238.76;
+ring.style.strokeDashoffset = offset;
+}
+
+// فتح السؤال
+function openQuestion(q, btn) {
+btn.classList.add('played');
+gameState.currentQuestion = q;
+document.getElementById('q-category-label').textContent = q.category;
+document.getElementById('q-points-label').textContent = q.points + ' نقطة';
+document.getElementById('question-text-display').textContent = q.question;
+
+// معالجة الباركود لفئة "ولا كلمة"
+const barcodeArea = document.getElementById('barcode-area');
+if (q.category === 'ولا كلمة') {
+barcodeArea.classList.add('visible');
+new QRious({
+element: document.getElementById('qrCanvas'),
+value: q.barcode_text || q.answer,
+size: 250 // حجم كبير للتلفزيون
+});
+} else {
+barcodeArea.classList.remove('visible');
+}
+
+showScreen('screen-question');
+startTimer();
+}
+
+// زر عرض الإجابة
+document.getElementById('btn-done').onclick = () => {
+clearInterval(timerInterval);
+document.getElementById('result-correct-answer').textContent = gameState.currentQuestion.answer;
+document.getElementById('result-btn-team1').textContent = `أجاب ${gameState.teamNames[0]}`;
+document.getElementById('result-btn-team2').textContent = `أجاب ${gameState.teamNames[1]}`;
+document.getElementById('popup-result').classList.add('active');
+};
+
+// أزرار توزيع النقاط
+document.getElementById('result-btn-team1').onclick = () => handleAnswer(0);
+document.getElementById('result-btn-team2').onclick = () => handleAnswer(1);
+document.getElementById('result-btn-none').onclick = () => handleAnswer(-1);
+
+function handleAnswer(teamIndex) {
+if (teamIndex !== -1) {
+gameState.scores[teamIndex] += gameState.currentQuestion.points;
+}
+document.getElementById('popup-result').classList.remove('active');
+gameState.currentTurn = gameState.currentTurn === 0 ? 1 : 0;
+updateTurnUI();
+showScreen('screen-board');
+}
+
+// إنهاء اللعبة
+document.getElementById('btn-end-game').onclick = () => {
+const name = document.getElementById('winner-name-display');
+const score = document.getElementById('winner-score-display');
+if(gameState.scores[0] > gameState.scores[1]){
+name.textContent = gameState.teamNames[0];
+name.style.color = 'var(--team1)';
+score.textContent = gameState.scores[0] + ' نقطة';
+} else if (gameState.scores[1] > gameState.scores[0]) {
+name.textContent = gameState.teamNames[1];
+name.style.color = 'var(--team2)';
+score.textContent = gameState.scores[1] + ' نقطة';
+} else {
+name.textContent = 'تعادل!';
+name.style.color = '#fff';
+score.textContent = gameState.scores[0] + ' نقطة';
+}
+showScreen('screen-winner');
+};
+
+document.getElementById('btn-new-game').onclick = () => location.reload();
+
+// التشغيل الأولي
+init();
+</script>
+</body>
+</html>
     /* الشاشة النشطة تظهر */
     .screen.active {
       display: flex;
