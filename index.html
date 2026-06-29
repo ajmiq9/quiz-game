@@ -5,7 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#0F172A" />
 <title>مسابقة الفرق</title>
-
+<script>
+const manifestData = {
+  name: "مسابقة الفرق",
+  short_name: "المسابقة",
+  start_url: location.href,
+  display: "standalone",
+  background_color: "#0F172A",
+  theme_color: "#0F172A",
+  orientation: "landscape", // لإجبار الهاتف على فتح اللعبة بالعرض
+  icons: [
+    { src: "https://img.icons8.com/emoji/192/000000/trophy-emoji.png", sizes: "192x192", type: "image/png" },
+    { src: "https://img.icons8.com/emoji/512/000000/trophy-emoji.png", sizes: "512x512", type: "image/png" }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifestData)], { type: "application/json" });
+const manifestURL = URL.createObjectURL(blob);
+document.write('<link rel="manifest" href="' + manifestURL + '">');
+</script>
 <!-- مكتبة توليد الباركود QR Code -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
