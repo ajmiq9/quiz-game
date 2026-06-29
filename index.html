@@ -4,27 +4,34 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#0F172A" />
+<!-- اسم التطبيق للـ PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>مسابقة الفرق</title>
+
+<!-- مكتبة QRious لتوليد الباركود بشكل حقيقي ليعمل عند المسح -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+<!-- =============================================
+PWA MANIFEST مضمّن داخل الصفحة
+============================================= -->
 <script>
 const manifestData = {
-  name: "مسابقة الفرق",
-  short_name: "المسابقة",
-  start_url: location.href,
-  display: "standalone",
-  background_color: "#0F172A",
-  theme_color: "#0F172A",
-  orientation: "landscape", // لإجبار الهاتف على فتح اللعبة بالعرض
-  icons: [
-    { src: "https://img.icons8.com/emoji/192/000000/trophy-emoji.png", sizes: "192x192", type: "image/png" },
-    { src: "https://img.icons8.com/emoji/512/000000/trophy-emoji.png", sizes: "512x512", type: "image/png" }
-  ]
+name: "مسابقة الفرق",
+short_name: "مسابقة",
+start_url: ".",
+display: "standalone",
+orientation: "landscape",
+background_color: "#0F172A",
+theme_color: "#0F172A",
+icons: [
+{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>", sizes: "192x192", type: "image/svg+xml" }
+ ]
 };
 const blob = new Blob([JSON.stringify(manifestData)], { type: "application/json" });
 const manifestURL = URL.createObjectURL(blob);
 document.write('<link rel="manifest" href="' + manifestURL + '">');
 </script>
-<!-- مكتبة توليد الباركود QR Code -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
 <!-- خط Cairo من Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -45,7 +52,9 @@ padding: 0;
 --bg-card: #1E293B;
 --bg-border: #334155;
 --team1: #F97316;
+--team1-hover: #FB923C;
 --team2: #22C55E;
+--team2-hover: #4ADE80;
 --text-primary: #FFFFFF;
 --text-secondary: #CBD5E1;
 --btn-neutral: #334155;
@@ -65,11 +74,11 @@ color: var(--text-primary);
 }
 
 .screen {
-display: none;
+display: none; 
 position: fixed;
 inset: 0;
 overflow-y: auto;
-padding: 2vh 2vw; /* مساحات متناسبة مع التلفزيون */
+padding: 2vh 2vw;
 animation: fadeSlideUp 0.25s ease forwards;
 }
 
@@ -86,7 +95,7 @@ to { opacity: 1; transform: translateY(0); }
 .btn {
 font-family: 'Cairo', sans-serif;
 font-weight: 700;
-font-size: 1.5rem; /* تكبير خط الأزرار */
+font-size: 1.5rem;
 border: none;
 cursor: pointer;
 border-radius: var(--radius);
@@ -104,14 +113,12 @@ box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 .btn-team1 { background: var(--team1); color: #fff; }
 .btn-team2 { background: var(--team2); color: #fff; }
 .btn-neutral { background: var(--btn-neutral); color: var(--text-primary); }
+.btn-done { background: #10B981; color: #fff; font-size: 1.8rem; }
 
-/* ============================================
-شاشة الإعداد
-============================================ */
 #screen-setup { align-items: center; gap: 3vh; }
 
 .setup-title {
-font-size: 5vh; /* تكبير العنوان */
+font-size: 5vh;
 font-weight: 900;
 text-align: center;
 background: linear-gradient(135deg, var(--team1), var(--team2));
@@ -120,7 +127,9 @@ background: linear-gradient(135deg, var(--team1), var(--team2));
 margin-top: 2vh;
 }
 
-/* شبكة الفئات - 6 أعمدة للتلفزيون العريض */
+.selection-counter { font-size: 2.5vh; color: var(--text-secondary); }
+.selection-counter span { color: var(--team1); font-weight: 700; }
+
 .categories-grid {
 display: grid;
 grid-template-columns: repeat(6, 1fr);
@@ -139,21 +148,15 @@ transition: all var(--transition);
 display: flex;
 flex-direction: column;
 align-items: center;
-gap: 1vh;
+gap: 1.5vh;
 user-select: none;
 }
 
-.cat-card.selected {
-background: rgba(249, 115, 22, 0.15);
-border-color: var(--team1);
-}
-
+.cat-card.selected { background: rgba(249, 115, 22, 0.15); border-color: var(--team1); }
 .cat-card.disabled { opacity: 0.35; pointer-events: none; }
+
 .cat-emoji { font-size: 5vh; }
 .cat-name { font-size: 2.2vh; font-weight: 700; color: var(--text-primary); }
-
-.selection-counter { font-size: 2.5vh; color: var(--text-secondary); }
-.selection-counter span { color: var(--team1); font-weight: 700; }
 
 .btn-start-setup {
 font-size: 3vh;
@@ -168,16 +171,13 @@ animation: pulse 2s infinite;
 50% { box-shadow: 0 4px 40px rgba(249,115,22,0.8); }
 }
 
-/* ============================================
-النوافذ المنبثقة للتلفزيون
-============================================ */
 .popup-overlay {
 display: none;
 position: fixed;
 inset: 0;
 background: rgba(0,0,0,0.8);
 backdrop-filter: blur(8px);
-z-index: 100;
+z-index: 999;
 align-items: center;
 justify-content: center;
 }
@@ -189,35 +189,37 @@ background: var(--bg-card);
 border: 2px solid var(--bg-border);
 border-radius: 24px;
 padding: 4vh 3vw;
-width: 70vw; /* عرض ممتاز للتلفزيون */
-max-width: 800px;
+width: 70vw;
+max-width: 900px;
 display: flex;
 flex-direction: column;
 gap: 3vh;
 }
 
-.popup-title { font-size: 4vh; text-align: center; }
+.popup-title { font-size: 4vh; font-weight: 900; text-align: center; }
 
-.input-group label { font-size: 2.5vh; font-weight: 700; }
+.input-group label { font-size: 2.5vh; font-weight: 700; color: var(--text-secondary); }
 .input-group input {
 background: var(--bg-main);
 border: 2px solid var(--bg-border);
 border-radius: 12px;
 padding: 2vh;
 color: var(--text-primary);
+font-family: 'Cairo', sans-serif;
 font-size: 3vh;
 text-align: right;
 }
 
-/* ============================================
-لوحة اللعب (Scoreboard ثابتة)
-============================================ */
+.helps-info { background: rgba(255,255,255,0.04); border-radius: 14px; padding: 3vh; }
+.helps-info h4 { font-size: 2.5vh; color: var(--text-secondary); margin-bottom: 2vh; }
+.help-row { font-size: 2.2vh; margin-bottom: 1.5vh; }
+
 #screen-board { gap: 2vh; padding-top: 0; }
 
 .scoreboard {
-position: sticky; /* تثبيت في الأعلى */
+position: sticky;
 top: 0;
-z-index: 50;
+z-index: 100;
 background: var(--bg-main);
 display: grid;
 grid-template-columns: 1fr 1fr;
@@ -238,19 +240,21 @@ align-items: center;
 gap: 1vh;
 }
 
-.team-score-card.team1-active { border-color: var(--team1); box-shadow: 0 0 30px rgba(249,115,22,0.5); }
-.team-score-card.team2-active { border-color: var(--team2); box-shadow: 0 0 30px rgba(34,197,94,0.5); }
+.team-score-card.team1-active { border-color: var(--team1); box-shadow: 0 0 30px rgba(249,115,22,0.4); }
+.team-score-card.team2-active { border-color: var(--team2); box-shadow: 0 0 30px rgba(34,197,94,0.4); }
 
 .team-name { font-size: 3.5vh; font-weight: 900; }
 .team1-name { color: var(--team1); }
 .team2-name { color: var(--team2); }
-
 .team-points { font-size: 6vh; font-weight: 900; }
+
+.team-powerups { display: flex; gap: 1vw; }
+.powerup-icon { font-size: 3vh; transition: opacity 0.3s; position: relative; }
+.powerup-icon.used { opacity: 0.3; }
 
 .turn-indicator { text-align: center; font-size: 3vh; padding-top: 1vh; }
 .turn-indicator span { font-weight: 900; }
 
-/* شبكة أسئلة اللعب */
 .questions-grid {
 display: grid;
 grid-template-columns: repeat(6, 1fr);
@@ -262,16 +266,15 @@ padding-bottom: 5vh;
 background: var(--bg-card);
 border: 2px solid var(--bg-border);
 border-radius: 12px;
-padding: 1vh;
+padding: 1.5vh 1vw;
 text-align: center;
 font-size: 2.2vh;
-font-weight: 700;
+font-weight: 900;
 display: flex;
 flex-direction: column;
 gap: 1vh;
 margin-bottom: 1vh;
 }
-
 .cat-header-emoji { font-size: 4vh; }
 
 .question-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5vw; }
@@ -280,74 +283,60 @@ margin-bottom: 1vh;
 font-family: 'Cairo', sans-serif;
 font-weight: 900;
 font-size: 3.5vh;
-padding: 1.5vh 0;
+padding: 2vh 0;
 border: 2px solid #CBD5E1;
 border-radius: 12px;
 cursor: pointer;
 background: #F8FAFC;
 color: #0F172A;
+transition: all 0.2s;
 }
 
-.q-btn.played {
-background: #475569;
-color: #94A3B8;
-border-color: #334155;
-cursor: not-allowed;
-}
+.q-btn:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--team1); }
+.q-btn.played { background: #475569; color: #94A3B8; border-color: #334155; cursor: not-allowed; }
 
-/* ============================================
-شاشة السؤال والتايمر
-============================================ */
 #screen-question { align-items: center; justify-content: center; gap: 3vh; }
 
 .question-meta { text-align: center; font-size: 3vh; }
-.question-points-label { font-size: 4vh; font-weight: 900; color: var(--team1); }
+.question-points-label { font-size: 4.5vh; font-weight: 900; color: var(--team1); }
 
-/* المؤقت */
-.timer-circle { position: relative; width: 20vh; height: 20vh; }
+.timer-circle { position: relative; width: 22vh; height: 22vh; }
 .timer-circle svg { position: absolute; inset: 0; transform: rotate(-90deg); width: 100%; height: 100%; }
 .timer-bg-ring { fill: none; stroke: var(--bg-border); stroke-width: 8; }
 .timer-progress-ring { fill: none; stroke: var(--team1); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s ease; }
-.timer-number { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 7vh; font-weight: 900; }
+.timer-number { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 8vh; font-weight: 900; }
 
 .timer-phase-2 .timer-progress-ring { stroke: #EF4444; }
 .timer-phase-2 .timer-number { color: #EF4444; }
 
+@keyframes timerFlash { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.timer-circle.flashing .timer-progress-ring { animation: timerFlash 0.5s ease infinite; }
+
 .question-text-area { flex: 1; display: flex; align-items: center; justify-content: center; width: 90vw; }
-.question-text { font-size: 6vh; font-weight: 900; text-align: center; line-height: 1.6; }
+.question-text { font-size: 6.5vh; font-weight: 900; text-align: center; line-height: 1.6; }
 
-/* عرض الباركود بشكل كبير */
-.barcode-display {
-display: none;
-flex-direction: column;
-align-items: center;
-background: #fff;
-padding: 3vh;
-border-radius: 16px;
-margin-top: 2vh;
-}
+.barcode-display { display: none; flex-direction: column; align-items: center; background: #fff; padding: 3vh; border-radius: 16px; margin-top: 2vh; }
 .barcode-display.visible { display: flex; }
-.barcode-display p { font-size: 3vh; font-weight: bold; color: #000; margin-bottom: 1vh; }
+.barcode-display p { font-size: 3vh; font-weight: bold; color: #000; margin-bottom: 2vh; }
+#qrCanvas { width: 300px !important; height: 300px !important; }
 
-.btn-done-main {
-padding: 2vh 6vw;
-font-size: 4vh;
-background: #10B981;
-color: #fff;
-border-radius: var(--radius);
-font-weight: 900;
-}
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5vw; width: 80vw; margin: 2vh 0; }
+.option-btn { background: var(--bg-card); border: 3px solid var(--bg-border); border-radius: var(--radius); padding: 3vh; font-size: 3.5vh; font-weight: 900; text-align: center; }
 
-/* نافذة النتيجة */
-.result-answer-text { font-size: 4vh; font-weight: 900; color: #10B981; margin: 2vh 0; }
-.result-buttons { display: flex; flex-direction: column; gap: 2vh; }
+.question-controls { display: flex; gap: 1.5vw; align-items: center; justify-content: center; width: 100%; margin-top: 2vh; }
+.powerup-btn { display: flex; flex-direction: column; align-items: center; gap: 1vh; padding: 2vh 3vw; border-radius: 14px; font-size: 2.2vh; font-weight: 900; border:none; cursor:pointer;}
+.pu-emoji { font-size: 4vh; }
+.pu-options { background: rgba(59,130,246,0.2); color: #93C5FD; border: 2px solid #3B82F6; }
+.pu-double { background: rgba(139,92,246,0.2); color: #C4B5FD; border: 2px solid #8B5CF6; }
+.pu-steal { background: rgba(239,68,68,0.2); color: #FCA5A5; border: 2px solid #EF4444; }
+.powerup-btn.used-pu { opacity: 0.3; pointer-events: none; }
 
-/* ============================================
-شاشة الفائز
-============================================ */
-.winner-trophy { font-size: 15vh; }
-.winner-name { font-size: 8vh; font-weight: 900; }
-.winner-score { font-size: 6vh; }
+.btn-done-main { padding: 2vh 8vw; font-size: 4.5vh; background: #10B981; color: #fff; border-radius: var(--radius); font-weight: 900; border: none; cursor: pointer;}
+
+.winner-trophy { font-size: 15vh; animation: bounce 1s ease infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+.winner-name { font-size: 9vh; font-weight: 900; }
+.winner-score { font-size: 6vh; font-weight: 700; }
 
 @media (max-width: 768px) {
 .categories-grid { grid-template-columns: repeat(3, 1fr); }
@@ -357,7 +346,6 @@ font-weight: 900;
 </head>
 <body>
 
-<!-- 1. شاشة الإعداد -->
 <div id="screen-setup" class="screen active">
 <h1 class="setup-title">🏆 مسابقة الفرق</h1>
 <p class="selection-counter">اختر 6 فئات | تم اختيار <span id="selected-count">0</span></p>
@@ -365,7 +353,6 @@ font-weight: 900;
 <button class="btn btn-start-setup" id="btn-open-popup" style="display:none">ابدأ ▶</button>
 </div>
 
-<!-- نافذة إدخال الأسماء -->
 <div class="popup-overlay" id="popup-names">
 <div class="popup-box">
 <h2 class="popup-title">⚔️ أسماء الفرق</h2>
@@ -377,28 +364,42 @@ font-weight: 900;
 <label style="color: var(--team2)">🟢 الفريق الثاني</label>
 <input type="text" id="input-team2" placeholder="الفريق الثاني" />
 </div>
-<button class="btn btn-team1" id="btn-play-now" style="margin-top: 2vh;">العب الآن 🎮</button>
+<div class="helps-info">
+<h4>🛠 وسائل المساعدة</h4>
+<div class="help-row"><span class="help-icon">📝</span> <b>خيارات:</b> تحويل السؤال إلى 4 خيارات</div>
+<div class="help-row"><span class="help-icon">🚀</span> <b>دبل:</b> مضاعفة نقاط السؤال</div>
+<div class="help-row"><span class="help-icon">🥷</span> <b>سرقة:</b> أخذ النقاط من الخصم</div>
+</div>
+<button class="btn btn-team1" id="btn-play-now">العب الآن 🎮</button>
 </div>
 </div>
 
-<!-- 2. لوحة اللعب -->
 <div id="screen-board" class="screen">
 <div class="scoreboard">
 <div class="team-score-card" id="card-team1">
 <div class="team-name team1-name" id="display-team1-name">الفريق الأول</div>
 <div class="team-points" id="display-team1-score" style="color: var(--team1)">0</div>
+<div class="team-powerups">
+<span class="powerup-icon" id="t0-pu-options">📝</span>
+<span class="powerup-icon" id="t0-pu-double">🚀</span>
+<span class="powerup-icon" id="t0-pu-steal">🥷</span>
+</div>
 </div>
 <div class="team-score-card" id="card-team2">
 <div class="team-name team2-name" id="display-team2-name">الفريق الثاني</div>
 <div class="team-points" id="display-team2-score" style="color: var(--team2)">0</div>
+<div class="team-powerups">
+<span class="powerup-icon" id="t1-pu-options">📝</span>
+<span class="powerup-icon" id="t1-pu-double">🚀</span>
+<span class="powerup-icon" id="t1-pu-steal">🥷</span>
+</div>
 </div>
 </div>
 <div class="turn-indicator">دور: <span id="turn-label">-</span></div>
 <div class="questions-grid" id="questions-grid"></div>
-<div style="text-align: center; margin-top: 2vh;"><button class="btn" style="background:#DC2626; color:#fff;" id="btn-end-game">إنهاء اللعبة</button></div>
+<div style="text-align: center; margin-top:2vh"><button class="btn" style="background:#DC2626; color:#fff" id="btn-end-game">⛔ إنهاء اللعبة</button></div>
 </div>
 
-<!-- 3. شاشة السؤال -->
 <div id="screen-question" class="screen">
 <div class="question-meta">
 <div id="q-category-label" style="font-weight:bold; color:var(--text-secondary)"></div>
@@ -419,34 +420,45 @@ font-weight: 900;
 <div class="question-text" id="question-text-display"></div>
 </div>
 
-<!-- منطقة الباركود -->
+<!-- الباركود القابل للمسح -->
 <div class="barcode-display" id="barcode-area">
-<p>📱 صور الباركود لتعرف الكلمة</p>
+<p>📱 صور الباركود لتعرف ما تجسده (لا تتحدث)</p>
 <canvas id="qrCanvas"></canvas>
 </div>
 
-<button class="btn-done-main" id="btn-done">عرض الإجابة ✅</button>
+<!-- المساعدات -->
+<div class="options-grid" id="options-grid" style="display:none">
+<div class="option-btn" id="opt-a"></div>
+<div class="option-btn" id="opt-b"></div>
+<div class="option-btn" id="opt-c"></div>
+<div class="option-btn" id="opt-d"></div>
 </div>
 
-<!-- نافذة نتيجة السؤال -->
+<div class="question-controls">
+<button class="powerup-btn pu-options" id="pu-btn-options"><span class="pu-emoji">📝</span>خيارات</button>
+<button class="powerup-btn pu-double" id="pu-btn-double"><span class="pu-emoji">🚀</span>دبل</button>
+<button class="powerup-btn pu-steal" id="pu-btn-steal"><span class="pu-emoji">🥷</span>سرقة</button>
+<button class="btn-done-main" id="btn-done">✅ تم</button>
+</div>
+</div>
+
 <div class="popup-overlay result-popup" id="popup-result">
 <div class="popup-box">
-<h3 class="popup-title">الإجابة الصحيحة</h3>
-<div class="result-answer-text" id="result-correct-answer" style="text-align: center;"></div>
+<h3 class="popup-title">📊 من أجاب صح؟</h3>
+<div class="result-answer-text" id="result-correct-answer" style="text-align: center; font-size:4vh;"></div>
 <div class="result-buttons">
 <button class="btn btn-team1" id="result-btn-team1">أجاب الفريق الأول ✅</button>
 <button class="btn btn-team2" id="result-btn-team2">أجاب الفريق الثاني ✅</button>
-<button class="btn btn-neutral" id="result-btn-none">لم يجب أحد ❌</button>
+<button class="btn btn-neutral" id="result-btn-none">لا أحد ❌</button>
 </div>
 </div>
 </div>
 
-<!-- 4. شاشة الفائز -->
 <div id="screen-winner" class="screen">
 <div class="winner-trophy">🏆</div>
 <div class="winner-name" id="winner-name-display"></div>
 <div class="winner-score" id="winner-score-display"></div>
-<button class="btn" id="btn-new-game" style="background:#fff; color:#0F172A; margin-top:5vh;">لعبة جديدة</button>
+<button class="btn" id="btn-new-game" style="background:#fff; color:#0F172A; margin-top:5vh">🔄 لعبة جديدة</button>
 </div>
 
 <script>
@@ -474,8 +486,15 @@ let gameState = {
 selectedCategories: [],
 teamNames: ['الفريق الأول', 'الفريق الثاني'],
 scores: [0, 0],
+powerups: [
+{ options: true, double: true, steal: true },
+{ options: true, double: true, steal: true }
+],
 currentTurn: 0,
 currentQuestion: null,
+currentPoints: 0,
+doubleActive: false,
+stealActive: false,
 allQuestions: [],
 playedAllTime: new Set()
 };
@@ -508,21 +527,18 @@ for (let i = 1; i < lines.length; i++) {
 const val = parseCSVLine(lines[i]);
 if (val.length < 5) continue;
 qs.push({
-id: val[0], category: val[1], difficulty: val[2], points: parseInt(val[3]),
-question: val[4], answer: val[5], barcode_text: val[9] || val[5] 
+id: val[0], category: val[1], difficulty: val[2], points: parseInt(val[3])||200,
+question: val[4], answer: val[5], option_b: val[6], option_c: val[7], option_d: val[8],
+barcode_text: val[9] || val[5] 
 });
 }
 return qs;
-} catch (e) {
-console.error(e); return [];
-}
+} catch (e) { console.error(e); return []; }
 }
 
 async function init() {
 const stored = localStorage.getItem('quiz_played_ids');
-if (stored) {
-try { gameState.playedAllTime = new Set(JSON.parse(stored)); } catch(e) {}
-}
+if (stored) { try { gameState.playedAllTime = new Set(JSON.parse(stored)); } catch(e) {} }
 
 gameState.allQuestions = await fetchQuestions();
 const grid = document.getElementById('categories-grid');
@@ -560,10 +576,10 @@ showScreen('screen-board');
 function buildBoard() {
 document.getElementById('display-team1-name').textContent = gameState.teamNames[0];
 document.getElementById('display-team2-name').textContent = gameState.teamNames[1];
-updateTurnUI();
+updateScoreboard();
+
 const grid = document.getElementById('questions-grid');
 grid.innerHTML = '';
-
 const available = gameState.allQuestions.filter(q => !gameState.playedAllTime.has(q.id));
 
 gameState.selectedCategories.forEach(catId => {
@@ -574,8 +590,6 @@ col.innerHTML = `<div class="category-header"><span class="cat-header-emoji">${c
 [200, 400, 600].forEach(pts => {
 const diff = pts === 200 ? 'easy' : pts === 400 ? 'medium' : 'hard';
 const pool = available.filter(q => q.category === catId && q.difficulty === diff);
-
-// خلط الأسئلة
 const shuffled = pool.sort(() => Math.random() - 0.5);
 
 const pair = document.createElement('div');
@@ -597,12 +611,19 @@ grid.appendChild(col);
 });
 }
 
-function updateTurnUI() {
+function updateScoreboard() {
 document.getElementById('display-team1-score').textContent = gameState.scores[0];
 document.getElementById('display-team2-score').textContent = gameState.scores[1];
 document.getElementById('turn-label').textContent = gameState.teamNames[gameState.currentTurn];
 document.getElementById('card-team1').classList.toggle('team1-active', gameState.currentTurn === 0);
 document.getElementById('card-team2').classList.toggle('team2-active', gameState.currentTurn === 1);
+
+[0, 1].forEach(t => {
+const p = gameState.powerups[t];
+document.getElementById(`t${t}-pu-options`).classList.toggle('used', !p.options);
+document.getElementById(`t${t}-pu-double`).classList.toggle('used', !p.double);
+document.getElementById(`t${t}-pu-steal`).classList.toggle('used', !p.steal);
+});
 }
 
 let timerInterval;
@@ -614,17 +635,20 @@ clearInterval(timerInterval);
 timerPhase = 1;
 timeLeft = 60;
 const circle = document.getElementById('timer-circle');
-circle.classList.remove('timer-phase-2');
+circle.classList.remove('timer-phase-2', 'flashing');
 updateTimerDisplay(60);
 
 timerInterval = setInterval(() => {
 timeLeft--;
+if (timeLeft <= 10 && timeLeft > 0 && timerPhase === 1) circle.classList.add('flashing');
+else circle.classList.remove('flashing');
+
 if (timeLeft <= 0) {
 if (timerPhase === 1) {
 timerPhase = 2;
 timeLeft = 20;
 circle.classList.add('timer-phase-2');
-document.getElementById('question-text-display').innerHTML += '<br><span style="color:#EF4444; font-size:4vh">انتهى الوقت! فرصة الفريق الآخر</span>';
+document.getElementById('question-text-display').innerHTML += '<br><span style="color:#EF4444; font-size:4vh">⏳ انتهى الوقت! فرصة الفريق الآخر للاستحواذ</span>';
 } else {
 clearInterval(timerInterval);
 }
@@ -640,9 +664,56 @@ const offset = 238.76 - (timeLeft / maxTime) * 238.76;
 ring.style.strokeDashoffset = offset;
 }
 
+function setupPowerups() {
+gameState.doubleActive = false;
+gameState.stealActive = false;
+
+const pu = gameState.powerups[gameState.currentTurn];
+const btnOpt = document.getElementById('pu-btn-options');
+const btnDouble = document.getElementById('pu-btn-double');
+const btnSteal = document.getElementById('pu-btn-steal');
+const gridOpts = document.getElementById('options-grid');
+
+gridOpts.style.display = 'none';
+
+const newBtnOpt = btnOpt.cloneNode(true); btnOpt.parentNode.replaceChild(newBtnOpt, btnOpt);
+const newBtnDouble = btnDouble.cloneNode(true); btnDouble.parentNode.replaceChild(newBtnDouble, btnDouble);
+const newBtnSteal = btnSteal.cloneNode(true); btnSteal.parentNode.replaceChild(newBtnSteal, btnSteal);
+
+newBtnOpt.classList.toggle('used-pu', !pu.options);
+newBtnDouble.classList.toggle('used-pu', !pu.double);
+newBtnSteal.classList.toggle('used-pu', !pu.steal);
+
+newBtnOpt.onclick = () => {
+pu.options = false; newBtnOpt.classList.add('used-pu');
+gridOpts.style.display = 'grid';
+const q = gameState.currentQuestion;
+const opts = [q.answer, q.option_b, q.option_c, q.option_d].filter(Boolean);
+const shuf = opts.sort(() => Math.random() - 0.5);
+['opt-a', 'opt-b', 'opt-c', 'opt-d'].forEach((id, idx) => {
+const el = document.getElementById(id);
+if(shuf[idx]) { el.textContent = shuf[idx]; el.style.display = 'block'; } else { el.style.display = 'none'; }
+});
+updateScoreboard();
+};
+
+newBtnDouble.onclick = () => {
+pu.double = false; gameState.doubleActive = true; newBtnDouble.classList.add('used-pu');
+document.getElementById('q-points-label').textContent = (gameState.currentPoints * 2) + ' نقطة (دبل)';
+updateScoreboard();
+};
+
+newBtnSteal.onclick = () => {
+pu.steal = false; gameState.stealActive = true; newBtnSteal.classList.add('used-pu');
+document.getElementById('q-points-label').textContent += ' 🥷 (محاولة سرقة)';
+updateScoreboard();
+};
+}
+
 function openQuestion(q, btn) {
 btn.classList.add('played');
 gameState.currentQuestion = q;
+gameState.currentPoints = q.points;
 
 gameState.playedAllTime.add(q.id);
 localStorage.setItem('quiz_played_ids', JSON.stringify([...gameState.playedAllTime]));
@@ -651,17 +722,24 @@ document.getElementById('q-category-label').textContent = q.category;
 document.getElementById('q-points-label').textContent = q.points + ' نقطة';
 document.getElementById('question-text-display').textContent = q.question;
 
+setupPowerups();
+
+// الباركود الحقيقي القابل للمسح وتحويله لرابط غوغل
 const barcodeArea = document.getElementById('barcode-area');
 if (q.category === 'ولا كلمة') {
 barcodeArea.classList.add('visible');
-// تأخير بسيط لتوليد الكانفاس بعد ظهوره
+
+const hiddenWord = q.barcode_text || q.answer;
+const searchLink = "https://www.google.com/search?q=" + encodeURIComponent("الكلمة المطلوبة هي: " + hiddenWord);
+
 setTimeout(() => {
 new QRious({
 element: document.getElementById('qrCanvas'),
-value: q.barcode_text || q.answer,
-size: 250
+value: searchLink,
+size: 300,
+level: 'H'
 });
-}, 10);
+}, 50);
 } else {
 barcodeArea.classList.remove('visible');
 }
@@ -682,13 +760,22 @@ document.getElementById('result-btn-team1').onclick = () => handleAnswer(0);
 document.getElementById('result-btn-team2').onclick = () => handleAnswer(1);
 document.getElementById('result-btn-none').onclick = () => handleAnswer(-1);
 
-function handleAnswer(teamIndex) {
-if (teamIndex !== -1) {
-gameState.scores[teamIndex] += gameState.currentQuestion.points;
+function handleAnswer(ansTeamIndex) {
+if (ansTeamIndex !== -1) {
+let earned = gameState.currentPoints;
+if (gameState.doubleActive && ansTeamIndex === gameState.currentTurn) earned *= 2;
+
+if (gameState.stealActive && ansTeamIndex === gameState.currentTurn) {
+const opp = ansTeamIndex === 0 ? 1 : 0;
+gameState.scores[opp] = Math.max(0, gameState.scores[opp] - earned);
+gameState.scores[ansTeamIndex] += earned;
+} else {
+gameState.scores[ansTeamIndex] += earned;
+}
 }
 document.getElementById('popup-result').classList.remove('active');
 gameState.currentTurn = gameState.currentTurn === 0 ? 1 : 0;
-updateTurnUI();
+updateScoreboard();
 showScreen('screen-board');
 }
 
