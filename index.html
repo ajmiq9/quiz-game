@@ -462,6 +462,17 @@ transition: all 0.2s;
 </div>
 
 <script>
+// --- كود إظهار الكلمة السرية في الجوال ---
+const urlParams = new URLSearchParams(window.location.search);
+const secretWord = urlParams.get('secret');
+if (secretWord) {
+    document.body.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#f8fafc; margin:0;">
+            <h1 style="font-size: 15vw; color: #0f172a; text-align: center; font-family: 'Cairo', sans-serif;">${secretWord}</h1>
+        </div>`;
+    throw new Error("إيقاف اللعبة وعرض الكلمة فقط"); 
+}
+// ------------------------------------------
 const ALL_CATEGORIES = [
 { id: 'معلومات عامة', name: 'معلومات عامة', emoji: '🧠' },
 { id: 'عالم الحيوان', name: 'عالم الحيوان', emoji: '🐪' },
@@ -711,42 +722,53 @@ updateScoreboard();
 }
 
 function openQuestion(q, btn) {
-btn.classList.add('played');
-gameState.currentQuestion = q;
-gameState.currentPoints = q.points;
+    btn.classList.add('played');
+    gameState.currentQuestion = q;
+    gameState.currentPoints = q.points;
 
-gameState.playedAllTime.add(q.id);
-localStorage.setItem('quiz_played_ids', JSON.stringify([...gameState.playedAllTime]));
+    gameState.playedAllTime.add(q.id);
+    localStorage.setItem('quiz_played_ids', JSON.stringify([...gameState.playedAllTime]));
 
-document.getElementById('q-category-label').textContent = q.category;
-document.getElementById('q-points-label').textContent = q.points + ' نقطة';
-document.getElementById('question-text-display').textContent = q.question;
+    document.getElementById('q-category-label').textContent = q.category;
+    document.getElementById('q-points-label').textContent = q.points + ' نقطة';
+    document.getElementById('question-text-display').textContent = q.question;
 
-setupPowerups();
+    setupPowerups();
 
-// الباركود الحقيقي القابل للمسح وتحويله لرابط غوغل
-const barcodeArea = document.getElementById('barcode-area');
-if (q.category === 'ولا كلمة') {
-barcodeArea.classList.add('visible');
+    const barcodeArea = document.getElementById('barcode-area');
+    if (q.category === 'ولا كلمة') {
+        barcodeArea.classList.add('visible');
 
-const hiddenWord = q.barcode_text || q.answer;
-const searchLink = "https://www.google.com/search?q=" + encodeURIComponent("الكلمة المطلوبة هي: " + hiddenWord);
+        const hiddenWord = q.barcode_text || q.answer;
+        
+        // استخراج الرابط الحالي أياً كان (تطبيق محلي أو موقع إنترنت)
+        let currentUrl = window.location.href.split('?')[0];
+        
+        // لحل مشكلة 404، نُجبر النظام على إضافة index.html للرابط إذا لم تكن موجودة
+        if (!currentUrl.includes('.html')) {
+            if (!currentUrl.endsWith('/')) currentUrl += '/';
+            currentUrl += 'index.html';
+        }
 
-setTimeout(() => {
-new QRious({
-element: document.getElementById('qrCanvas'),
-value: searchLink,
-size: 300,
-level: 'H'
-});
-}, 50);
-} else {
-barcodeArea.classList.remove('visible');
+        // دمج الرابط مع الكلمة السرية
+        const secretUrl = currentUrl + "?secret=" + encodeURIComponent(hiddenWord);
+
+        setTimeout(() => {
+            new QRious({
+                element: document.getElementById('qrCanvas'),
+                value: secretUrl,
+                size: 300,
+                level: 'H'
+            });
+        }, 50);
+    } else {
+        barcodeArea.classList.remove('visible');
+    }
+
+    showScreen('screen-question');
+    startTimer();
 }
 
-showScreen('screen-question');
-startTimer();
-}
 
 document.getElementById('btn-done').onclick = () => {
 clearInterval(timerInterval);
