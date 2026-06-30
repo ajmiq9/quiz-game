@@ -463,7 +463,7 @@ body {
 .turn-indicator span {
   font-weight: 900;
   color: var(--text-primary);
-}
+}    
 
 /* ============================================
 منطقة الأسئلة
@@ -709,7 +709,7 @@ body {
   text-align: center;
 }
 
-#qrCanvas { width: 260px !important; height: 260px !important; }
+#qrCanvas { width: 200px !important; height: 200px !important; }
 
 /* خيارات المساعدة */
 .options-grid {
@@ -867,6 +867,53 @@ body {
   text-align: center;
 }
 
+/* 
+============================================
+أدوات تحكم مدير الجلسة (جديد)
+============================================
+ */
+.admin-score-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5vh;
+}
+.admin-btn {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.8vh;
+  padding: 0 0.8vw;
+  color: var(--text-secondary);
+  transition: 0.2s;
+}
+.admin-btn:hover { background: var(--border); color: var(--text-primary); }
+.powerup-icon { cursor: pointer !important; } /* تفعيل الضغط على المساعدات */
+
+.timer-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+}
+.timer-reset-btn {
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  width: 6.5vh;
+  height: 6.5vh;
+  font-size: 3vh;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+.timer-reset-btn:hover {
+  transform: rotate(-45deg);
+  border-color: var(--team1);
+}
+
 /* ============================================
 زر إنهاء اللعبة
 ============================================ */
@@ -937,15 +984,21 @@ body {
   <div class="scoreboard">
     <!-- الفريق الأول (يسار) -->
     <div class="team-score-card team-left" id="card-team1">
-      <div class="team-powerups">
-        <span class="powerup-icon" id="t0-pu-options">📝</span>
-        <span class="powerup-icon" id="t0-pu-double">🚀</span>
-        <span class="powerup-icon" id="t0-pu-steal">🥷</span>
+      <div class="team-powerups" title="اضغط لاسترجاع أو خصم المساعدة">
+        <span class="powerup-icon" id="t0-pu-options" onclick="togglePowerup(0, 'options')">📝</span>
+        <span class="powerup-icon" id="t0-pu-double" onclick="togglePowerup(0, 'double')">🚀</span>
+        <span class="powerup-icon" id="t0-pu-steal" onclick="togglePowerup(0, 'steal')">🥷</span>
       </div>
       <div class="team-info">
         <div class="team-name team1-name" id="display-team1-name">الفريق الأول</div>
       </div>
-      <div class="team-points" id="display-team1-score" style="color: var(--team1)">0</div>
+      <div style="display: flex; align-items: center; gap: 1vw;">
+        <div class="team-points" id="display-team1-score" style="color: var(--team1)">0</div>
+        <div class="admin-score-controls">
+          <button class="admin-btn" onclick="adjustScore(0, 100)">➕</button>
+          <button class="admin-btn" onclick="adjustScore(0, -100)">➖</button>
+        </div>
+      </div>
     </div>
 
     <!-- الوسط: VS + دور -->
@@ -956,14 +1009,20 @@ body {
 
     <!-- الفريق الثاني (يمين) -->
     <div class="team-score-card team-right" id="card-team2">
-      <div class="team-points" id="display-team2-score" style="color: var(--team2)">0</div>
+      <div style="display: flex; align-items: center; gap: 1vw; flex-direction: row-reverse;">
+        <div class="team-points" id="display-team2-score" style="color: var(--team2)">0</div>
+        <div class="admin-score-controls">
+          <button class="admin-btn" onclick="adjustScore(1, 100)">➕</button>
+          <button class="admin-btn" onclick="adjustScore(1, -100)">➖</button>
+        </div>
+      </div>
       <div class="team-info" style="text-align:right">
         <div class="team-name team2-name" id="display-team2-name">الفريق الثاني</div>
       </div>
-      <div class="team-powerups">
-        <span class="powerup-icon" id="t1-pu-options">📝</span>
-        <span class="powerup-icon" id="t1-pu-double">🚀</span>
-        <span class="powerup-icon" id="t1-pu-steal">🥷</span>
+      <div class="team-powerups" title="اضغط لاسترجاع أو خصم المساعدة">
+        <span class="powerup-icon" id="t1-pu-options" onclick="togglePowerup(1, 'options')">📝</span>
+        <span class="powerup-icon" id="t1-pu-double" onclick="togglePowerup(1, 'double')">🚀</span>
+        <span class="powerup-icon" id="t1-pu-steal" onclick="togglePowerup(1, 'steal')">🥷</span>
       </div>
     </div>
   </div>
@@ -985,36 +1044,33 @@ body {
 <div id="screen-question" class="screen">
   <div class="question-screen-inner">
 
-    <!-- الرأس: الفئة + النقاط + المؤقت -->
     <div class="question-top-bar">
       <div class="question-meta">
         <div id="q-category-label"></div>
         <div class="question-points-label" id="q-points-label"></div>
       </div>
-      <div class="timer-container">
-        <div class="timer-circle" id="timer-circle">
-          <svg viewBox="0 0 90 90">
-            <circle class="timer-bg-ring" cx="45" cy="45" r="38" />
-            <circle class="timer-progress-ring" id="timer-ring" cx="45" cy="45" r="38"
-              stroke-dasharray="238.76" stroke-dashoffset="0" />
-          </svg>
-          <div class="timer-number" id="timer-number">60</div>
+      <div class="timer-wrapper">
+        <button class="timer-reset-btn" id="btn-reset-timer" title="إعادة الوقت">🔄</button>
+        <div class="timer-container">
+          <div class="timer-circle" id="timer-circle">
+            <svg viewBox="0 0 90 90">
+              <circle class="timer-bg-ring" cx="45" cy="45" r="38" />
+              <circle class="timer-progress-ring" id="timer-ring" cx="45" cy="45" r="38"
+                stroke-dasharray="238.76" stroke-dashoffset="0" />
+            </svg>
+            <div class="timer-number" id="timer-number">60</div>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- جسم السؤال -->
-    <div class="question-body">
+    </div> <div class="question-body">
       <div class="question-text-area">
         <div class="question-text" id="question-text-display"></div>
 
-        <!-- الباركود القابل للمسح -->
         <div class="barcode-display" id="barcode-area">
           <p>📱 صور الباركود لتعرف ما تجسده (لا تتحدث)</p>
           <canvas id="qrCanvas"></canvas>
         </div>
 
-        <!-- خيارات المساعدة -->
         <div class="options-grid" id="options-grid" style="display:none">
           <div class="option-btn" id="opt-a"></div>
           <div class="option-btn" id="opt-b"></div>
@@ -1024,7 +1080,6 @@ body {
       </div>
     </div>
 
-    <!-- شريط المساعدات + زر تم -->
     <div class="question-controls">
       <button class="btn-done-main" id="btn-done">✅ تم</button>
       <button class="powerup-btn pu-options" id="pu-btn-options"><span class="pu-emoji">📝</span>خيارات</button>
@@ -1410,7 +1465,7 @@ function openQuestion(q, btn) {
       new QRious({
         element: document.getElementById('qrCanvas'),
         value: secretUrl,
-        size: 260,
+        size: 200,
         level: 'H'
       });
     }, 50);
@@ -1482,6 +1537,27 @@ document.getElementById('btn-end-game').onclick = () => {
     score.textContent = gameState.scores[0] + ' نقطة';
   }
   showScreen('screen-winner');
+};
+
+// ============================================
+// أدوات تحكم مدير الجلسة
+// ============================================
+function adjustScore(teamIndex, amount) {
+  gameState.scores[teamIndex] += amount;
+  // منع النقاط من النزول تحت الصفر
+  if(gameState.scores[teamIndex] < 0) gameState.scores[teamIndex] = 0; 
+  updateScoreboard();
+}
+
+function togglePowerup(teamIndex, powerupType) {
+  // عكس حالة وسيلة المساعدة (تفعيل / تعطيل) بضغطة زر
+  gameState.powerups[teamIndex][powerupType] = !gameState.powerups[teamIndex][powerupType];
+  updateScoreboard();
+}
+
+// زر إعادة الوقت من جديد
+document.getElementById('btn-reset-timer').onclick = () => {
+  startTimer();
 };
 
 // ============================================
